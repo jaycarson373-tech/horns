@@ -218,9 +218,11 @@ export async function fetchUserById(userId: string) {
 export async function uploadImageForTweet(imagePath: string) {
   const config = getConfig();
   if (config.xOAuth2UserToken) {
+    console.info("x.media.upload.auth_path", { auth: "oauth2_user_context" });
     return uploadImageForTweetWithOAuth2(imagePath);
   }
 
+  console.info("x.media.upload.auth_path", { auth: "oauth1_user_context" });
   return withRetry("x.media.upload", async () => {
     return getWriteClient().v1.uploadMedia(imagePath, {
       mimeType: "image/png",

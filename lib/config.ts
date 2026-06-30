@@ -44,7 +44,15 @@ export type HornsConfig = {
 };
 
 function env(name: string) {
-  const value = process.env[name]?.trim();
+  let value = process.env[name]?.trim();
+  if (value && value.length >= 2) {
+    const first = value[0];
+    const last = value[value.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      value = value.slice(1, -1).trim();
+    }
+  }
+
   return value ? value : undefined;
 }
 

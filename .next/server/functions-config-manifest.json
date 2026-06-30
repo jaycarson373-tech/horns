@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/cron/horns": {
+      "maxDuration": 300
+    }
+  }
+}

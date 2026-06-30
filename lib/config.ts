@@ -1,5 +1,5 @@
 export const HORN_EDIT_PROMPT =
-  "Add stylish bull/devil horns to the subject in this profile picture. Preserve the original face, pose, expression, art style, background, colors, and composition. Only add horns. Do not add text or logos.";
+  "Add a matching pair of dark charcoal-black crescent bull horns to the subject in this profile picture. The horns should look like polished black bull horns: thick rounded bases near the temples, curved outward and upward, tapering to sharp inward tips, with subtle gray highlights and worn textured ridges like dark stone or aged metal. Preserve the original face, pose, expression, art style, background, colors, lighting, and composition. Only add the horns. Do not add text, logos, extra accessories, or change the person.";
 
 export const REPLY_TEXT = "Horns added.";
 

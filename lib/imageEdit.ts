@@ -300,13 +300,34 @@ async function addHornsWithSharp(buffer: Buffer) {
   const width = metadata.width ?? 1024;
   const height = metadata.height ?? 1024;
   const strokeWidth = Math.max(4, Math.round(width * 0.012));
+  const highlightWidth = Math.max(2, Math.round(width * 0.006));
 
   const overlay = Buffer.from(`
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-      <path d="M ${width * 0.34} ${height * 0.27} C ${width * 0.25} ${height * 0.12}, ${width * 0.22} ${height * 0.04}, ${width * 0.29} ${height * 0.02} C ${width * 0.36} ${height * 0.07}, ${width * 0.40} ${height * 0.17}, ${width * 0.39} ${height * 0.30} Z" fill="#f6f0df" stroke="#3a2518" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
-      <path d="M ${width * 0.66} ${height * 0.27} C ${width * 0.75} ${height * 0.12}, ${width * 0.78} ${height * 0.04}, ${width * 0.71} ${height * 0.02} C ${width * 0.64} ${height * 0.07}, ${width * 0.60} ${height * 0.17}, ${width * 0.61} ${height * 0.30} Z" fill="#f6f0df" stroke="#3a2518" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
-      <path d="M ${width * 0.31} ${height * 0.08} C ${width * 0.32} ${height * 0.15}, ${width * 0.35} ${height * 0.20}, ${width * 0.38} ${height * 0.26}" fill="none" stroke="#cdbf9b" stroke-width="${Math.max(2, strokeWidth / 2)}" stroke-linecap="round"/>
-      <path d="M ${width * 0.69} ${height * 0.08} C ${width * 0.68} ${height * 0.15}, ${width * 0.65} ${height * 0.20}, ${width * 0.62} ${height * 0.26}" fill="none" stroke="#cdbf9b" stroke-width="${Math.max(2, strokeWidth / 2)}" stroke-linecap="round"/>
+      <defs>
+        <linearGradient id="leftHorn" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#d7d7d7" stop-opacity="0.72"/>
+          <stop offset="22%" stop-color="#4d4d4d"/>
+          <stop offset="62%" stop-color="#101010"/>
+          <stop offset="100%" stop-color="#050505"/>
+        </linearGradient>
+        <linearGradient id="rightHorn" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#d7d7d7" stop-opacity="0.72"/>
+          <stop offset="22%" stop-color="#4d4d4d"/>
+          <stop offset="62%" stop-color="#101010"/>
+          <stop offset="100%" stop-color="#050505"/>
+        </linearGradient>
+        <filter id="rough" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="9" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="${Math.max(1, Math.round(width * 0.002))}"/>
+        </filter>
+      </defs>
+      <path filter="url(#rough)" d="M ${width * 0.39} ${height * 0.30} C ${width * 0.30} ${height * 0.30}, ${width * 0.22} ${height * 0.22}, ${width * 0.24} ${height * 0.10} C ${width * 0.26} ${height * 0.04}, ${width * 0.30} ${height * 0.00}, ${width * 0.35} ${height * 0.02} C ${width * 0.28} ${height * 0.11}, ${width * 0.29} ${height * 0.20}, ${width * 0.42} ${height * 0.24} C ${width * 0.45} ${height * 0.25}, ${width * 0.45} ${height * 0.30}, ${width * 0.39} ${height * 0.30} Z" fill="url(#leftHorn)" stroke="#080808" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
+      <path filter="url(#rough)" d="M ${width * 0.61} ${height * 0.30} C ${width * 0.70} ${height * 0.30}, ${width * 0.78} ${height * 0.22}, ${width * 0.76} ${height * 0.10} C ${width * 0.74} ${height * 0.04}, ${width * 0.70} ${height * 0.00}, ${width * 0.65} ${height * 0.02} C ${width * 0.72} ${height * 0.11}, ${width * 0.71} ${height * 0.20}, ${width * 0.58} ${height * 0.24} C ${width * 0.55} ${height * 0.25}, ${width * 0.55} ${height * 0.30}, ${width * 0.61} ${height * 0.30} Z" fill="url(#rightHorn)" stroke="#080808" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
+      <path d="M ${width * 0.30} ${height * 0.07} C ${width * 0.27} ${height * 0.16}, ${width * 0.31} ${height * 0.24}, ${width * 0.41} ${height * 0.27}" fill="none" stroke="#e0e0e0" stroke-opacity="0.48" stroke-width="${highlightWidth}" stroke-linecap="round"/>
+      <path d="M ${width * 0.70} ${height * 0.07} C ${width * 0.73} ${height * 0.16}, ${width * 0.69} ${height * 0.24}, ${width * 0.59} ${height * 0.27}" fill="none" stroke="#e0e0e0" stroke-opacity="0.48" stroke-width="${highlightWidth}" stroke-linecap="round"/>
+      <path d="M ${width * 0.37} ${height * 0.29} C ${width * 0.39} ${height * 0.26}, ${width * 0.42} ${height * 0.25}, ${width * 0.44} ${height * 0.26}" fill="none" stroke="#5f5f5f" stroke-opacity="0.5" stroke-width="${highlightWidth}" stroke-linecap="round"/>
+      <path d="M ${width * 0.63} ${height * 0.29} C ${width * 0.61} ${height * 0.26}, ${width * 0.58} ${height * 0.25}, ${width * 0.56} ${height * 0.26}" fill="none" stroke="#5f5f5f" stroke-opacity="0.5" stroke-width="${highlightWidth}" stroke-linecap="round"/>
     </svg>
   `);
 

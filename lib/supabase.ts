@@ -68,7 +68,17 @@ export async function createProcessedMention(input: CreateProcessedMentionInput)
 
   if (error) {
     if (error.code === "23505") {
-      return { created: false as const, record: null };
+      const { data: existingRecord, error: readError } = await getSupabase()
+        .from(TABLE)
+        .select("*")
+        .eq("mention_id", input.mentionId)
+        .single<ProcessedMention>();
+
+      if (readError) {
+        throw readError;
+      }
+
+      return { created: false as const, record: existingRecord };
     }
 
     throw error;

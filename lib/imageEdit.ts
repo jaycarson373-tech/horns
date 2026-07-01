@@ -5,7 +5,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import sharp from "sharp";
 
-import { getConfig, HORN_EDIT_PROMPT } from "./config";
+import { botConfig } from "./botConfig";
+import { getConfig } from "./config";
 import { NonRetryableError, NonRetryableHttpError, throwForBadResponse, withRetry } from "./retry";
 
 export class UnsafeImageError extends NonRetryableError {
@@ -22,7 +23,7 @@ export class UnavailableImageError extends NonRetryableError {
   }
 }
 
-export type HornsImageResult = {
+export type TransformationImageResult = {
   filePath: string;
   provider: "openai" | "replicate" | "sharp";
   sourceImageUrl: string;
@@ -167,7 +168,7 @@ async function openAIImageEdit(buffer: Buffer, imageFieldName: "image[]" | "imag
 
   const formData = new FormData();
   formData.append("model", config.openaiImageModel);
-  formData.append("prompt", HORN_EDIT_PROMPT);
+  formData.append("prompt", botConfig.imagePrompt);
   formData.append("n", "1");
   formData.append(imageFieldName, new Blob([new Uint8Array(buffer)], { type: "image/png" }), "profile.png");
 
@@ -221,7 +222,7 @@ async function createReplicatePrediction(buffer: Buffer) {
     },
     body: JSON.stringify({
       input: {
-        [config.replicatePromptField]: HORN_EDIT_PROMPT,
+        [config.replicatePromptField]: botConfig.imagePrompt,
         [config.replicateImageField]: bufferToDataUrl(buffer)
       }
     })
@@ -295,46 +296,39 @@ async function editWithReplicate(buffer: Buffer) {
   throw new Error("Replicate prediction timed out");
 }
 
-async function addHornsWithSharp(buffer: Buffer) {
+async function addCatifyWithSharp(buffer: Buffer) {
   const metadata = await sharp(buffer).metadata();
   const width = metadata.width ?? 1024;
   const height = metadata.height ?? 1024;
-  const strokeWidth = Math.max(4, Math.round(width * 0.012));
-  const highlightWidth = Math.max(2, Math.round(width * 0.006));
+  const strokeWidth = Math.max(3, Math.round(width * 0.008));
+  const whiskerWidth = Math.max(2, Math.round(width * 0.004));
 
   const overlay = Buffer.from(`
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="leftHorn" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#d7d7d7" stop-opacity="0.72"/>
-          <stop offset="22%" stop-color="#4d4d4d"/>
-          <stop offset="62%" stop-color="#101010"/>
-          <stop offset="100%" stop-color="#050505"/>
-        </linearGradient>
-        <linearGradient id="rightHorn" x1="100%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#d7d7d7" stop-opacity="0.72"/>
-          <stop offset="22%" stop-color="#4d4d4d"/>
-          <stop offset="62%" stop-color="#101010"/>
-          <stop offset="100%" stop-color="#050505"/>
-        </linearGradient>
-        <filter id="rough" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="9" result="noise"/>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="${Math.max(1, Math.round(width * 0.002))}"/>
-        </filter>
+        <radialGradient id="face" cx="50%" cy="45%" r="50%">
+          <stop offset="0%" stop-color="#ffe7b8" stop-opacity="0.92"/>
+          <stop offset="70%" stop-color="#f2ad5d" stop-opacity="0.88"/>
+          <stop offset="100%" stop-color="#d67b35" stop-opacity="0.9"/>
+        </radialGradient>
       </defs>
-      <path filter="url(#rough)" d="M ${width * 0.39} ${height * 0.30} C ${width * 0.30} ${height * 0.30}, ${width * 0.22} ${height * 0.22}, ${width * 0.24} ${height * 0.10} C ${width * 0.26} ${height * 0.04}, ${width * 0.30} ${height * 0.00}, ${width * 0.35} ${height * 0.02} C ${width * 0.28} ${height * 0.11}, ${width * 0.29} ${height * 0.20}, ${width * 0.42} ${height * 0.24} C ${width * 0.45} ${height * 0.25}, ${width * 0.45} ${height * 0.30}, ${width * 0.39} ${height * 0.30} Z" fill="url(#leftHorn)" stroke="#080808" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
-      <path filter="url(#rough)" d="M ${width * 0.61} ${height * 0.30} C ${width * 0.70} ${height * 0.30}, ${width * 0.78} ${height * 0.22}, ${width * 0.76} ${height * 0.10} C ${width * 0.74} ${height * 0.04}, ${width * 0.70} ${height * 0.00}, ${width * 0.65} ${height * 0.02} C ${width * 0.72} ${height * 0.11}, ${width * 0.71} ${height * 0.20}, ${width * 0.58} ${height * 0.24} C ${width * 0.55} ${height * 0.25}, ${width * 0.55} ${height * 0.30}, ${width * 0.61} ${height * 0.30} Z" fill="url(#rightHorn)" stroke="#080808" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
-      <path d="M ${width * 0.30} ${height * 0.07} C ${width * 0.27} ${height * 0.16}, ${width * 0.31} ${height * 0.24}, ${width * 0.41} ${height * 0.27}" fill="none" stroke="#e0e0e0" stroke-opacity="0.48" stroke-width="${highlightWidth}" stroke-linecap="round"/>
-      <path d="M ${width * 0.70} ${height * 0.07} C ${width * 0.73} ${height * 0.16}, ${width * 0.69} ${height * 0.24}, ${width * 0.59} ${height * 0.27}" fill="none" stroke="#e0e0e0" stroke-opacity="0.48" stroke-width="${highlightWidth}" stroke-linecap="round"/>
-      <path d="M ${width * 0.37} ${height * 0.29} C ${width * 0.39} ${height * 0.26}, ${width * 0.42} ${height * 0.25}, ${width * 0.44} ${height * 0.26}" fill="none" stroke="#5f5f5f" stroke-opacity="0.5" stroke-width="${highlightWidth}" stroke-linecap="round"/>
-      <path d="M ${width * 0.63} ${height * 0.29} C ${width * 0.61} ${height * 0.26}, ${width * 0.58} ${height * 0.25}, ${width * 0.56} ${height * 0.26}" fill="none" stroke="#5f5f5f" stroke-opacity="0.5" stroke-width="${highlightWidth}" stroke-linecap="round"/>
+      <path d="M ${width * 0.31} ${height * 0.26} L ${width * 0.38} ${height * 0.10} L ${width * 0.47} ${height * 0.30} Z" fill="#d97836" stroke="#432615" stroke-width="${strokeWidth}" stroke-linejoin="round" opacity="0.92"/>
+      <path d="M ${width * 0.69} ${height * 0.26} L ${width * 0.62} ${height * 0.10} L ${width * 0.53} ${height * 0.30} Z" fill="#d97836" stroke="#432615" stroke-width="${strokeWidth}" stroke-linejoin="round" opacity="0.92"/>
+      <circle cx="${width * 0.50}" cy="${height * 0.50}" r="${width * 0.29}" fill="url(#face)" stroke="#432615" stroke-width="${strokeWidth}" opacity="0.9"/>
+      <ellipse cx="${width * 0.40}" cy="${height * 0.45}" rx="${width * 0.045}" ry="${height * 0.06}" fill="#151515"/>
+      <ellipse cx="${width * 0.60}" cy="${height * 0.45}" rx="${width * 0.045}" ry="${height * 0.06}" fill="#151515"/>
+      <circle cx="${width * 0.382}" cy="${height * 0.425}" r="${width * 0.012}" fill="#ffffff"/>
+      <circle cx="${width * 0.582}" cy="${height * 0.425}" r="${width * 0.012}" fill="#ffffff"/>
+      <path d="M ${width * 0.50} ${height * 0.50} L ${width * 0.47} ${height * 0.55} L ${width * 0.53} ${height * 0.55} Z" fill="#d45d6a"/>
+      <path d="M ${width * 0.47} ${height * 0.57} C ${width * 0.49} ${height * 0.60}, ${width * 0.51} ${height * 0.60}, ${width * 0.53} ${height * 0.57}" fill="none" stroke="#432615" stroke-width="${whiskerWidth}" stroke-linecap="round"/>
+      <path d="M ${width * 0.30} ${height * 0.52} L ${width * 0.43} ${height * 0.54} M ${width * 0.30} ${height * 0.58} L ${width * 0.43} ${height * 0.57} M ${width * 0.70} ${height * 0.52} L ${width * 0.57} ${height * 0.54} M ${width * 0.70} ${height * 0.58} L ${width * 0.57} ${height * 0.57}" stroke="#432615" stroke-width="${whiskerWidth}" stroke-linecap="round"/>
     </svg>
   `);
 
   return sharp(buffer).composite([{ input: overlay, top: 0, left: 0 }]).png().toBuffer();
 }
 
-async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: HornsImageResult["provider"] }> {
+async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: TransformationImageResult["provider"] }> {
   const config = getConfig();
   const preferredProvider = config.imageProvider;
 
@@ -363,13 +357,13 @@ async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: Ho
   }
 
   if (preferredProvider === "sharp" || config.sharpFallbackEnabled) {
-    return { buffer: await addHornsWithSharp(buffer), provider: "sharp" };
+    return { buffer: await addCatifyWithSharp(buffer), provider: "sharp" };
   }
 
   throw new Error("No image edit provider is configured");
 }
 
-export async function createHornsImage(sourceImageUrl: string, mentionId: string): Promise<HornsImageResult> {
+export async function createTransformationImage(sourceImageUrl: string, mentionId: string): Promise<TransformationImageResult> {
   const config = getConfig();
   const sourceImage = await fetchBuffer(sourceImageUrl, "profile_image", config.maxProfileImageBytes);
   const normalizedSourceImage = await normalizeToPng(sourceImage);
@@ -378,7 +372,7 @@ export async function createHornsImage(sourceImageUrl: string, mentionId: string
 
   const editedImage = await editImage(normalizedSourceImage);
   const normalizedEditedImage = await normalizeToPng(editedImage.buffer);
-  const tempDir = await fs.mkdtemp(path.join(tmpdir(), "horns-"));
+  const tempDir = await fs.mkdtemp(path.join(tmpdir(), `${botConfig.tempFilePrefix}-`));
   const safeMentionId = mentionId.replace(/[^A-Za-z0-9_-]/g, "");
   const filePath = path.join(tempDir, `${safeMentionId || "mention"}.png`);
 
@@ -391,7 +385,7 @@ export async function createHornsImage(sourceImageUrl: string, mentionId: string
   };
 }
 
-export async function cleanupHornsImage(result?: HornsImageResult) {
+export async function cleanupTransformationImage(result?: TransformationImageResult) {
   if (!result) {
     return;
   }

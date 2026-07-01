@@ -1,6 +1,6 @@
-# Horns Bot
+# CatifyBot
 
-Horns is an opt-in X bot. It only polls direct mentions of the bot account, edits the mentioning user's profile picture to add horns, and replies to that exact mention with `Horns added.` plus the edited image.
+CatifyBot is an opt-in X bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a cute kitten avatar, and replies to that exact mention with `Catified. 🐱` plus the edited image.
 
 ## Setup
 
@@ -10,11 +10,11 @@ Horns is an opt-in X bot. It only polls direct mentions of the bot account, edit
    npm install
    ```
 
-2. Create the Supabase table by running [supabase/processed_mentions.sql](./supabase/processed_mentions.sql).
+2. Create or migrate the Supabase table by running [supabase/processed_mentions.sql](./supabase/processed_mentions.sql). The table is shared-safe through `bot_project`, so future bots can reuse it without mention ID collisions.
 
 3. Copy `.env.example` to `.env` and fill in real credentials.
 
-   X's current v2 media upload and post creation docs use an OAuth2 user access token. Set `X_OAUTH2_USER_TOKEN` if you have one with write/media scopes. If it is absent, the bot falls back to the OAuth1 credentials listed in the requested env vars.
+   X's current v2 media upload and post creation docs use an OAuth2 user access token. Set `X_OAUTH2_USER_TOKEN` only if you have a real user-context token with write/media scopes. If it is absent, the bot falls back to OAuth1 credentials.
 
 4. Run a safe dry run locally:
 
@@ -26,7 +26,7 @@ Horns is an opt-in X bot. It only polls direct mentions of the bot account, edit
 
 ## Railway Deployment
 
-Railway is the recommended host for this bot because it can run the worker as a long-lived process. This repo includes [railway.json](./railway.json), which tells Railway to start the container with:
+Railway is the recommended host because this bot runs as a long-lived worker. [railway.json](./railway.json) starts the container with:
 
 ```bash
 npm run poll
@@ -38,19 +38,19 @@ Deploy from GitHub:
 2. In Railway, create a new project and choose "Deploy from GitHub repo".
 3. Select the repo.
 4. Open the service's Variables tab.
-5. Paste the values from `.env.example`, filled with real credentials.
+5. Paste values from `.env.example`, filled with real credentials.
 6. Keep `DRY_RUN=true` for the first deploy.
-7. Watch the deploy logs.
+7. Watch deploy logs.
 8. After a successful dry run, change `DRY_RUN=false` and redeploy.
 
-Deploy with Railway CLI:
+Required bot vars:
 
-```bash
-railway init
-railway up
+```env
+BOT_USERNAME=CatifyBot
+BOT_USER_ID=
+BOT_PROJECT_KEY=catifybot
+DRY_RUN=true
 ```
-
-Then add the environment variables in the Railway dashboard or with `railway variables`.
 
 ## Local Running
 
@@ -60,11 +60,18 @@ Long-running worker:
 npm run poll
 ```
 
+Single poll:
+
+```bash
+npm run poll:once
+```
+
 ## Safety Defaults
 
 - `DRY_RUN=true` by default; the bot logs actions without posting.
 - No keyword search is used. The bot only calls the bot user's mentions timeline.
-- `processed_mentions.mention_id` is unique, so each mention is processed at most once.
+- Mentions are stored in Supabase and are not processed twice once they succeed.
+- Failed mentions can retry after a deployment or auth fix.
 - `MAX_GLOBAL_REPLIES_PER_HOUR` defaults to `20`.
 - One reply per author per hour is enforced.
 - Protected/unavailable profiles are skipped.
@@ -78,8 +85,16 @@ npm run poll
 
 Replicate models have different input schemas, so set `REPLICATE_MODEL`, `REPLICATE_PROMPT_FIELD`, and `REPLICATE_IMAGE_FIELD` for the model you choose.
 
-`SHARP_FALLBACK_ENABLED=true` enables a simple local horns overlay if the image provider is unavailable or fails. Keep it off if every public reply must be AI-edited.
+`SHARP_FALLBACK_ENABLED=true` enables a simple local cat-face overlay if the image provider is unavailable or fails. Keep it off if every public reply must be AI-edited.
 
-## Cost Notes
+## Configuration
 
-Railway has a Free plan with a small monthly credit and a separate free trial, but a real always-on bot may outgrow that. X API access and AI image editing may also cost money. For the cheapest test mode, keep `DRY_RUN=true` and use `IMAGE_PROVIDER=sharp` with `SHARP_FALLBACK_ENABLED=true`.
+Bot-specific branding lives in [lib/botConfig.ts](./lib/botConfig.ts):
+
+- `botName`
+- `defaultBotUsername`
+- `transformationName`
+- `imagePrompt`
+- `replyText`
+
+Future transformation bots should change that file first instead of rewriting queue, X, or Supabase logic.

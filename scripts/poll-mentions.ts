@@ -3,7 +3,7 @@ import "dotenv/config";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { getConfig } from "../lib/config";
-import { runHornsOnce } from "../lib/queue";
+import { runBotOnce } from "../lib/queue";
 
 let stopping = false;
 
@@ -21,9 +21,9 @@ async function main() {
 
   do {
     try {
-      await runHornsOnce("worker");
+      await runBotOnce("worker");
     } catch (error) {
-      console.error("horns.poll.failed", error);
+      console.error("catify.poll.failed", error);
     }
 
     if (once || stopping) {
@@ -35,6 +35,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("horns.worker.fatal", error);
+  console.error("catify.worker.fatal", error);
   process.exitCode = 1;
 });

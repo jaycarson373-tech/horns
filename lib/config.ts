@@ -1,13 +1,11 @@
-export const HORN_EDIT_PROMPT =
-  "Add a matching pair of dark charcoal-black crescent bull horns to the subject in this profile picture. The horns should look like polished black bull horns: thick rounded bases near the temples, curved outward and upward, tapering to sharp inward tips, with subtle gray highlights and worn textured ridges like dark stone or aged metal. Preserve the original face, pose, expression, art style, background, colors, lighting, and composition. Only add the horns. Do not add text, logos, extra accessories, or change the person.";
-
-export const REPLY_TEXT = "Horns added.";
+import { botConfig } from "./botConfig";
 
 export type ImageProvider = "auto" | "openai" | "replicate" | "sharp";
 
-export type HornsConfig = {
+export type AppConfig = {
   botUsername: string;
   botUserId: string;
+  botProjectKey: string;
   cronSecret?: string;
   dryRun: boolean;
   dryRunGenerateImage: boolean;
@@ -109,7 +107,11 @@ function stripLeadingAt(username: string) {
   return username.replace(/^@+/, "").toLowerCase();
 }
 
-export function getConfig(): HornsConfig {
+function defaultBotProjectKey() {
+  return botConfig.botName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export function getConfig(): AppConfig {
   const dryRun = readBoolean("DRY_RUN", true);
   const dryRunGenerateImage = readBoolean("DRY_RUN_GENERATE_IMAGE", false);
   const imageProvider = readImageProvider();
@@ -141,8 +143,9 @@ export function getConfig(): HornsConfig {
   }
 
   return {
-    botUsername: stripLeadingAt(required("BOT_USERNAME")),
+    botUsername: stripLeadingAt(env("BOT_USERNAME") ?? botConfig.defaultBotUsername),
     botUserId: required("BOT_USER_ID"),
+    botProjectKey: env("BOT_PROJECT_KEY") ?? defaultBotProjectKey(),
     cronSecret: env("CRON_SECRET"),
     dryRun,
     dryRunGenerateImage,
@@ -168,7 +171,7 @@ export function getConfig(): HornsConfig {
     sharpFallbackEnabled,
     supabaseServiceRoleKey: required("SUPABASE_SERVICE_ROLE_KEY"),
     supabaseUrl: required("SUPABASE_URL"),
-    userAgent: env("USER_AGENT") ?? "horns-bot/0.1.0",
+    userAgent: env("USER_AGENT") ?? botConfig.userAgent,
     xAccessToken: env("X_ACCESS_TOKEN"),
     xAccessTokenSecret: env("X_ACCESS_TOKEN_SECRET"),
     xApiBaseUrl: env("X_API_BASE_URL") ?? "https://api.x.com/2",

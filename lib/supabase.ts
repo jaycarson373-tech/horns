@@ -6,6 +6,7 @@ export type ProcessedMentionStatus = "queued" | "processing" | "replied" | "dry_
 
 export type ProcessedMention = {
   id: string;
+  bot_project: string;
   mention_id: string;
   author_id: string;
   author_username: string | null;
@@ -52,7 +53,9 @@ export function getSupabase() {
 }
 
 export async function createProcessedMention(input: CreateProcessedMentionInput) {
+  const config = getConfig();
   const row = {
+    bot_project: config.botProjectKey,
     mention_id: input.mentionId,
     author_id: input.authorId,
     author_username: input.authorUsername ?? null,
@@ -71,6 +74,7 @@ export async function createProcessedMention(input: CreateProcessedMentionInput)
       const { data: existingRecord, error: readError } = await getSupabase()
         .from(TABLE)
         .select("*")
+        .eq("bot_project", config.botProjectKey)
         .eq("mention_id", input.mentionId)
         .single<ProcessedMention>();
 
@@ -88,6 +92,7 @@ export async function createProcessedMention(input: CreateProcessedMentionInput)
 }
 
 export async function updateProcessedMention(mentionId: string, input: UpdateProcessedMentionInput) {
+  const config = getConfig();
   const patch = {
     ...(input.authorUsername !== undefined ? { author_username: input.authorUsername } : {}),
     ...(input.error !== undefined ? { error: input.error } : {}),
@@ -100,6 +105,7 @@ export async function updateProcessedMention(mentionId: string, input: UpdatePro
   const { data, error } = await getSupabase()
     .from(TABLE)
     .update(patch)
+    .eq("bot_project", config.botProjectKey)
     .eq("mention_id", mentionId)
     .select("*")
     .single<ProcessedMention>();
@@ -112,9 +118,11 @@ export async function updateProcessedMention(mentionId: string, input: UpdatePro
 }
 
 export async function countRecentReplies(sinceIso: string, authorId?: string) {
+  const config = getConfig();
   let query = getSupabase()
     .from(TABLE)
     .select("id", { count: "exact", head: true })
+    .eq("bot_project", config.botProjectKey)
     .gte("created_at", sinceIso)
     .in("status", ["replied", "dry_run"]);
 

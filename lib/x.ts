@@ -3,7 +3,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { TwitterApi } from "twitter-api-v2";
 
-import { getConfig, REPLY_TEXT } from "./config";
+import { botConfig } from "./botConfig";
+import { getConfig } from "./config";
 import { NonRetryableError, throwForBadResponse, withRetry } from "./retry";
 
 export type XAuthor = {
@@ -250,7 +251,7 @@ async function uploadImageForTweetWithOAuth2(imagePath: string) {
   appendForm.append("command", "APPEND");
   appendForm.append("media_id", mediaId);
   appendForm.append("segment_index", "0");
-  appendForm.append("media", new Blob([new Uint8Array(image)], { type: "image/png" }), "horns.png");
+  appendForm.append("media", new Blob([new Uint8Array(image)], { type: "image/png" }), botConfig.mediaFilename);
   await xOAuth2PostForm<XMediaUploadResponse>("/media/upload", appendForm);
 
   const finalizeForm = new FormData();
@@ -291,7 +292,7 @@ export async function replyToMentionWithImage(mentionId: string, mediaId: string
   const config = getConfig();
   if (config.xOAuth2UserToken) {
     const response = await xOAuth2PostJson<XCreateTweetResponse>("/tweets", {
-      text: REPLY_TEXT,
+      text: botConfig.replyText,
       made_with_ai: true,
       reply: {
         in_reply_to_tweet_id: mentionId
@@ -311,7 +312,7 @@ export async function replyToMentionWithImage(mentionId: string, mediaId: string
 
   return withRetry("x.reply", async () => {
     const payload = {
-      text: REPLY_TEXT,
+      text: botConfig.replyText,
       made_with_ai: true,
       reply: {
         in_reply_to_tweet_id: mentionId

@@ -1,6 +1,13 @@
 import { countRecentReplies, createProcessedMention, updateProcessedMention } from "./supabase";
 import { getConfig } from "./config";
-import { cleanupHornsImage, createHornsImage, safeErrorMessage, UnsafeImageError, UnavailableImageError, type HornsImageResult } from "./imageEdit";
+import {
+  cleanupTransformationImage,
+  createTransformationImage,
+  safeErrorMessage,
+  UnsafeImageError,
+  UnavailableImageError,
+  type TransformationImageResult
+} from "./imageEdit";
 import {
   fetchRecentMentions,
   fetchUserById,
@@ -37,6 +44,11 @@ function logEvent(event: string, payload: Record<string, unknown>) {
   console.info(JSON.stringify({ event, ...payload }));
 }
 
+function eventName(name: string) {
+  const projectKey = getConfig().botProjectKey;
+  return `${projectKey}.${name}`;
+}
+
 function oneHourAgoIso() {
   return new Date(Date.now() - 60 * 60 * 1000).toISOString();
 }
@@ -66,7 +78,7 @@ async function markSkipped(mention: XMention, reason: string, author?: XAuthor, 
     profileImageUrl: profileImageUrl ?? author?.profile_image_url ?? null
   });
 
-  logEvent("horns.mention.skipped", {
+  logEvent(eventName("mention.skipped"), {
     mentionId: mention.id,
     authorId: mention.author_id,
     reason
@@ -89,11 +101,11 @@ async function getAuthor(mention: XMention) {
 
 async function processDryRun(mention: XMention, author: XAuthor, profileImageUrl: string) {
   const config = getConfig();
-  let hornsImage: HornsImageResult | undefined;
+  let transformationImage: TransformationImageResult | undefined;
 
   try {
     if (config.dryRunGenerateImage) {
-      hornsImage = await createHornsImage(profileImageUrl, mention.id);
+      transformationImage = await createTransformationImage(profileImageUrl, mention.id);
     }
 
     await updateProcessedMention(mention.id, {
@@ -103,12 +115,12 @@ async function processDryRun(mention: XMention, author: XAuthor, profileImageUrl
       profileImageUrl
     });
 
-    logEvent("horns.mention.dry_run", {
+    logEvent(eventName("mention.dry_run"), {
       mentionId: mention.id,
       authorId: mention.author_id,
       authorUsername: author.username,
-      imageGenerated: Boolean(hornsImage),
-      provider: hornsImage?.provider
+      imageGenerated: Boolean(transformationImage),
+      provider: transformationImage?.provider
     });
 
     return {
@@ -116,7 +128,7 @@ async function processDryRun(mention: XMention, author: XAuthor, profileImageUrl
       status: "dry_run" as const
     };
   } finally {
-    await cleanupHornsImage(hornsImage);
+    await cleanupTransformationImage(transformationImage);
   }
 }
 
@@ -162,7 +174,7 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
   }
 
   if (!created.created) {
-    logEvent("horns.mention.retrying_failed", {
+    logEvent(eventName("mention.retrying_failed"), {
       mentionId: mention.id,
       authorId: mention.author_id,
       previousStatus: created.record?.status
@@ -212,10 +224,10 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
       return processDryRun(mention, author, profileImageUrl);
     }
 
-    let hornsImage: HornsImageResult | undefined;
+    let transformationImage: TransformationImageResult | undefined;
     try {
-      hornsImage = await createHornsImage(profileImageUrl, mention.id);
-      const mediaId = await uploadImageForTweet(hornsImage.filePath);
+      transformationImage = await createTransformationImage(profileImageUrl, mention.id);
+      const mediaId = await uploadImageForTweet(transformationImage.filePath);
       const replyId = await replyToMentionWithImage(mention.id, mediaId);
 
       await updateProcessedMention(mention.id, {
@@ -226,11 +238,11 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
         profileImageUrl
       });
 
-      logEvent("horns.mention.replied", {
+      logEvent(eventName("mention.replied"), {
         mentionId: mention.id,
         authorId: mention.author_id,
         authorUsername: author.username,
-        provider: hornsImage.provider,
+        provider: transformationImage.provider,
         replyId
       });
 
@@ -240,7 +252,7 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
         replyId
       };
     } finally {
-      await cleanupHornsImage(hornsImage);
+      await cleanupTransformationImage(transformationImage);
     }
   } catch (error) {
     const message = safeErrorMessage(error);
@@ -251,7 +263,7 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
       error: message
     });
 
-    console.error("horns.mention.failed", {
+    console.error(eventName("mention.failed"), {
       mentionId: mention.id,
       authorId: mention.author_id,
       skipped,
@@ -266,7 +278,7 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
   }
 }
 
-export async function runHornsOnce(source = "manual"): Promise<PollRunResult> {
+export async function runBotOnce(source = "manual"): Promise<PollRunResult> {
   const config = getConfig();
   const startedAt = new Date().toISOString();
   const mentions = await fetchRecentMentions(config.maxMentionsPerPoll);
@@ -290,6 +302,6 @@ export async function runHornsOnce(source = "manual"): Promise<PollRunResult> {
     finishedAt: new Date().toISOString()
   };
 
-  logEvent("horns.poll.complete", result);
+  logEvent(eventName("poll.complete"), result);
   return result;
 }

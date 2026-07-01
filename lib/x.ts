@@ -98,6 +98,39 @@ export function toHighestQualityProfileImageUrl(profileImageUrl: string) {
   return url.toString();
 }
 
+function summarizeXApiError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return { message: String(error) };
+  }
+
+  const record = error as Record<string, unknown>;
+  return {
+    name: record.name,
+    message: record.message,
+    code: record.code,
+    status: record.status,
+    data: record.data,
+    errors: record.errors,
+    rateLimit: record.rateLimit
+  };
+}
+
+function xApiErrorText(error: unknown) {
+  const summary = summarizeXApiError(error);
+  return JSON.stringify(summary).toLowerCase();
+}
+
+function isPossiblyDuplicateReplyError(error: unknown) {
+  const text = xApiErrorText(error);
+  return text.includes("duplicate") || text.includes("already") || text.includes("code 187");
+}
+
+function replyTextsToTry() {
+  return [botConfig.replyText, ...botConfig.replyTextFallbacks].filter(
+    (replyText, index, all) => all.indexOf(replyText) === index
+  );
+}
+
 async function xApiGet<T>(path: string, params?: Record<string, string>) {
   const config = getConfig();
   const url = new URL(`${config.xApiBaseUrl}${path}`);
@@ -225,10 +258,32 @@ export async function uploadImageForTweet(imagePath: string) {
 
   console.info("x.media.upload.auth_path", { auth: "oauth1_user_context" });
   return withRetry("x.media.upload", async () => {
-    return getWriteClient().v1.uploadMedia(imagePath, {
-      mimeType: "image/png",
-      target: "tweet"
-    });
+    const image = await fs.readFile(imagePath);
+
+    try {
+      const mediaId = await getWriteClient().v2.uploadMedia(image, {
+        media_type: "image/png",
+        media_category: "tweet_image"
+      });
+
+      console.info("x.media.upload.success", { endpoint: "v2" });
+      return mediaId;
+    } catch (v2Error) {
+      console.warn("x.media.upload.v2_failed_falling_back", summarizeXApiError(v2Error));
+    }
+
+    try {
+      const mediaId = await getWriteClient().v1.uploadMedia(imagePath, {
+        mimeType: "image/png",
+        target: "tweet"
+      });
+
+      console.info("x.media.upload.success", { endpoint: "v1.1" });
+      return mediaId;
+    } catch (v1Error) {
+      console.error("x.media.upload.failed", summarizeXApiError(v1Error));
+      throw v1Error;
+    }
   });
 }
 
@@ -291,44 +346,66 @@ async function waitForMediaProcessing(mediaId: string, processingInfo?: XMediaPr
 export async function replyToMentionWithImage(mentionId: string, mediaId: string) {
   const config = getConfig();
   if (config.xOAuth2UserToken) {
-    const response = await xOAuth2PostJson<XCreateTweetResponse>("/tweets", {
-      text: botConfig.replyText,
-      made_with_ai: true,
-      reply: {
-        in_reply_to_tweet_id: mentionId
-      },
-      media: {
-        media_ids: [mediaId]
-      }
-    });
+    for (const text of replyTextsToTry()) {
+      try {
+        const response = await xOAuth2PostJson<XCreateTweetResponse>("/tweets", {
+          text,
+          made_with_ai: true,
+          reply: {
+            in_reply_to_tweet_id: mentionId
+          },
+          media: {
+            media_ids: [mediaId]
+          }
+        });
 
-    const replyId = response.data?.id;
-    if (!replyId) {
-      throw new NonRetryableError("X create tweet response did not include a reply id");
+        const replyId = response.data?.id;
+        if (!replyId) {
+          throw new NonRetryableError("X create tweet response did not include a reply id");
+        }
+
+        return replyId;
+      } catch (error) {
+        console.error("x.reply.failed", { text, ...summarizeXApiError(error) });
+        if (!isPossiblyDuplicateReplyError(error)) {
+          throw error;
+        }
+      }
     }
 
-    return replyId;
+    throw new NonRetryableError("X rejected all Catify reply text variants");
   }
 
   return withRetry("x.reply", async () => {
-    const payload = {
-      text: botConfig.replyText,
-      made_with_ai: true,
-      reply: {
-        in_reply_to_tweet_id: mentionId
-      },
-      media: {
-        media_ids: [mediaId]
+    for (const text of replyTextsToTry()) {
+      const payload = {
+        text,
+        made_with_ai: true,
+        reply: {
+          in_reply_to_tweet_id: mentionId
+        },
+        media: {
+          media_ids: [mediaId]
+        }
+      };
+
+      try {
+        const response = await getWriteClient().v2.tweet(payload as any);
+
+        const replyId = response.data?.id;
+        if (!replyId) {
+          throw new NonRetryableError("X create tweet response did not include a reply id");
+        }
+
+        return replyId;
+      } catch (error) {
+        console.error("x.reply.failed", { text, ...summarizeXApiError(error) });
+        if (!isPossiblyDuplicateReplyError(error)) {
+          throw error;
+        }
       }
-    };
-
-    const response = await getWriteClient().v2.tweet(payload as any);
-
-    const replyId = response.data?.id;
-    if (!replyId) {
-      throw new NonRetryableError("X create tweet response did not include a reply id");
     }
 
-    return replyId;
+    throw new NonRetryableError("X rejected all Catify reply text variants");
   });
 }

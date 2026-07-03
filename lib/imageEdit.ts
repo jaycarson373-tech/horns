@@ -108,6 +108,35 @@ async function normalizeToPng(buffer: Buffer) {
   }
 }
 
+async function normalizeTemplateToPng(buffer: Buffer) {
+  try {
+    return await sharp(buffer, { animated: false })
+      .rotate()
+      .resize({
+        width: 1024,
+        height: 1024,
+        fit: "cover"
+      })
+      .png()
+      .toBuffer();
+  } catch {
+    throw new UnavailableImageError("ANSEMFY template image could not be decoded");
+  }
+}
+
+async function readTemplateImage() {
+  try {
+    const template = await fs.readFile(path.resolve(process.cwd(), botConfig.templateImagePath));
+    return normalizeTemplateToPng(template);
+  } catch (error) {
+    if (error instanceof UnavailableImageError) {
+      throw error;
+    }
+
+    throw new UnavailableImageError(`ANSEMFY template image is missing at ${botConfig.templateImagePath}`);
+  }
+}
+
 async function assertImageIsSafe(buffer: Buffer) {
   const config = getConfig();
   if (!config.moderationEnabled) {
@@ -160,7 +189,7 @@ async function assertImageIsSafe(buffer: Buffer) {
   }
 }
 
-async function openAIImageEdit(buffer: Buffer, imageFieldName: "image[]" | "image") {
+async function openAIImageEdit(sourceBuffer: Buffer, templateBuffer: Buffer, imageFieldName: "image[]" | "image") {
   const config = getConfig();
   if (!config.openaiApiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
@@ -170,7 +199,8 @@ async function openAIImageEdit(buffer: Buffer, imageFieldName: "image[]" | "imag
   formData.append("model", config.openaiImageModel);
   formData.append("prompt", botConfig.imagePrompt);
   formData.append("n", "1");
-  formData.append(imageFieldName, new Blob([new Uint8Array(buffer)], { type: "image/png" }), "profile.png");
+  formData.append(imageFieldName, new Blob([new Uint8Array(sourceBuffer)], { type: "image/png" }), "reference-a-user-profile.png");
+  formData.append(imageFieldName, new Blob([new Uint8Array(templateBuffer)], { type: "image/png" }), "reference-b-ansemfy-template.png");
 
   const response = await fetch(`${config.openaiBaseUrl}/images/edits`, {
     method: "POST",
@@ -196,11 +226,13 @@ async function openAIImageEdit(buffer: Buffer, imageFieldName: "image[]" | "imag
 }
 
 async function editWithOpenAI(buffer: Buffer) {
+  const template = await readTemplateImage();
+
   try {
-    return await withRetry("openai.image_edit", () => openAIImageEdit(buffer, "image[]"));
+    return await withRetry("openai.image_edit", () => openAIImageEdit(buffer, template, "image[]"));
   } catch (error) {
     if (error instanceof NonRetryableHttpError && error.status === 400) {
-      return withRetry("openai.image_edit_legacy_field", () => openAIImageEdit(buffer, "image"));
+      return withRetry("openai.image_edit_legacy_field", () => openAIImageEdit(buffer, template, "image"));
     }
 
     throw error;

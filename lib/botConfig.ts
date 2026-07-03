@@ -3,6 +3,7 @@ export type TransformationBotConfig = {
   defaultBotUsername: string;
   transformationName: string;
   imagePrompt: string;
+  templateImagePath: string;
   replyText: string;
   replyTextFallbacks: string[];
   tempFilePrefix: string;
@@ -15,7 +16,8 @@ export const botConfig: TransformationBotConfig = {
   defaultBotUsername: "AnsemPfpBot",
   transformationName: "ansemified",
   imagePrompt:
-    "Ansemify this profile picture by using the iconic Ansem meme-photo as the template and changing the face/identity to match the input PFP. The final image must be a photorealistic square PFP that looks like a real low-resolution early-2010s point-and-shoot flash photo, not anime, not a cartoon, not an illustration, not CGI, and not a game avatar. Keep the Ansem template: warm wooden cabinet or closet background, yellow or pale cream shirt, over-the-shoulder body pose, close crop, confident mischievous smirk, warm orange flash glow on the right side, direct camera flash, natural skin texture, soft film grain, slight JPEG compression, casual dorm/kitchen party-photo energy. Replace only the face, hair, skin tone, facial structure, and small identity cues so the person matches the commenter/source profile picture. If the source is a cartoon, mascot, animal, or non-human avatar, translate its recognizable face/colors/accessories into a photorealistic human face in the same Ansem template. Do not preserve the source background or full outfit unless needed for tiny identity cues; the result should look like another member of the Ansem banner wall. No fantasy effects, glowing rings, wings, hoodies, horns, cat ears, text, watermarks, or new logos.",
+    "You are performing a face replacement, not generating a new image. Reference A is the user's profile picture. Reference B is the official ANSEMFY template. Recreate Reference B almost perfectly. Only change one thing: replace the face in Reference B with the identity from Reference A. Everything else must remain identical to Reference B: exact camera angle, exact body pose, exact smile, exact head rotation, exact shirt, exact haircut shape, exact kitchen background, exact warm orange lighting, exact crop, exact composition, exact proportions, and exact color grading. The output must immediately be recognizable as the ANSEMFY template. Do not invent a new pose. Do not invent new clothing. Do not invent a new background. Do not change the framing. Do not create a cartoon or illustration. Do not stylize. Every output should look like it came from the exact same photograph, with only the person's face changed. This consistency is extremely important because all generated profile pictures need to look like members of the same army.",
+  templateImagePath: "assets/ansem-template.jpg",
   replyText: "Ansemified.",
   replyTextFallbacks: ["Ansem mode enabled.", "Become Ansem.", "PFP upgraded."],
   tempFilePrefix: "ansem-pfp",

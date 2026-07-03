@@ -1,8 +1,8 @@
 # AnsemPfpBot
 
-AnsemPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a photorealistic Ansem-template flash-photo PFP, and replies to that exact mention with `Ansemified.` plus the edited image.
+AnsemPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into the official ANSEMFY template by replacing the template face, and replies to that exact mention with `Ansemified.` plus the edited image.
 
-The transformation uses the warm wood-cabinet, yellow-shirt, over-the-shoulder Ansem setup as the template, then swaps the face and identity cues to match the user's PFP. It does not do keyword search and it does not process random public posts.
+The transformation sends the user's PFP as Reference A and [assets/ansem-template.jpg](./assets/ansem-template.jpg) as Reference B. The template pose, shirt, background, crop, lighting, and composition should stay fixed while the face/identity changes. It does not do keyword search and it does not process random public posts.
 
 ## Setup
 
@@ -132,6 +132,7 @@ Bot-specific branding lives in [lib/botConfig.ts](./lib/botConfig.ts):
 - `defaultBotUsername`
 - `transformationName`
 - `imagePrompt`
+- `templateImagePath`
 - `replyText`
 - `replyTextFallbacks`
 

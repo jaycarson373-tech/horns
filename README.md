@@ -89,6 +89,12 @@ event: ansem-pfp-bot.mention.replied
 event: ansem-pfp-bot.poll.complete ... replied: 1 failed: 0
 ```
 
+For launch/backlog processing, set:
+
+```env
+MAX_MENTIONS_PER_POLL=100
+```
+
 ## Local Running
 
 Long-running worker:

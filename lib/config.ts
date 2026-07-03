@@ -152,7 +152,7 @@ export function getConfig(): AppConfig {
     imageProvider,
     maxGlobalRepliesPerHour: readInteger("MAX_GLOBAL_REPLIES_PER_HOUR", 20, { min: 0 }),
     maxMentionAgeMinutes: readInteger("MAX_MENTION_AGE_MINUTES", 1440, { min: 0 }),
-    maxMentionsPerPoll: readInteger("MAX_MENTIONS_PER_POLL", 20, { min: 5, max: 100 }),
+    maxMentionsPerPoll: readInteger("MAX_MENTIONS_PER_POLL", 100, { min: 5, max: 100 }),
     maxProfileImageBytes: readInteger("MAX_PROFILE_IMAGE_BYTES", 10_000_000, { min: 100_000 }),
     moderationEnabled: readBoolean("MODERATION_ENABLED", true),
     openaiApiKey,

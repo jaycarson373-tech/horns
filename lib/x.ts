@@ -236,7 +236,8 @@ async function xOAuth2PostForm<T>(path: string, formData: FormData) {
 
 export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
   const config = getConfig();
-  const maxResults = String(limit ?? config.maxMentionsPerPoll);
+  const maxMentions = limit ?? config.maxMentionsPerPoll;
+  const maxResults = String(maxMentions);
   const response = await xApiGet<XTweetResponse>(`/users/${config.botUserId}/mentions`, {
     max_results: maxResults,
     expansions: "author_id",
@@ -245,11 +246,24 @@ export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
   });
 
   const mentions = tweetsToMentions(response);
-  if (mentions.length > 0) {
-    return mentions;
+  const searchMentions = await fetchRecentDirectMentionSearch(limit);
+  const mentionsById = new Map<string, XMention>();
+
+  for (const mention of [...mentions, ...searchMentions]) {
+    mentionsById.set(mention.id, mention);
   }
 
-  return fetchRecentDirectMentionSearch(limit);
+  const mergedMentions = [...mentionsById.values()]
+    .sort((left, right) => Date.parse(right.created_at ?? "0") - Date.parse(left.created_at ?? "0"))
+    .slice(0, maxMentions);
+
+  console.info("x.mentions.merged", {
+    timelineFetched: mentions.length,
+    searchFetched: searchMentions.length,
+    mergedFetched: mergedMentions.length
+  });
+
+  return mergedMentions;
 }
 
 async function fetchRecentDirectMentionSearch(limit?: number): Promise<XMention[]> {
@@ -267,7 +281,7 @@ async function fetchRecentDirectMentionSearch(limit?: number): Promise<XMention[
     });
 
     const mentions = tweetsToMentions(response).filter((mention) => isDirectMention(mention.text, config.botUsername));
-    console.info("x.mentions.search_fallback", {
+    console.info("x.mentions.search", {
       query,
       fetched: mentions.length
     });

@@ -35,6 +35,8 @@ type XTweetResponse = {
   };
 };
 
+type XTweet = NonNullable<XTweetResponse["data"]>[number];
+
 type XUserResponse = {
   data?: XAuthor;
 };
@@ -96,6 +98,20 @@ export function toHighestQualityProfileImageUrl(profileImageUrl: string) {
   const url = new URL(profileImageUrl);
   url.pathname = url.pathname.replace(/_(normal|bigger|mini)(\.[^.]+)$/i, "$2");
   return url.toString();
+}
+
+function tweetsToMentions(response: XTweetResponse) {
+  const usersById = new Map((response.includes?.users ?? []).map((user) => [user.id, user]));
+
+  return (response.data ?? [])
+    .filter((tweet): tweet is XTweet & { author_id: string } => Boolean(tweet.author_id))
+    .map((tweet) => ({
+      id: tweet.id,
+      text: tweet.text,
+      author_id: tweet.author_id,
+      created_at: tweet.created_at,
+      author: usersById.get(tweet.author_id)
+    }));
 }
 
 function summarizeXApiError(error: unknown) {
@@ -228,17 +244,39 @@ export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
     "user.fields": "id,name,username,profile_image_url,protected"
   });
 
-  const usersById = new Map((response.includes?.users ?? []).map((user) => [user.id, user]));
+  const mentions = tweetsToMentions(response);
+  if (mentions.length > 0) {
+    return mentions;
+  }
 
-  return (response.data ?? [])
-    .filter((tweet) => tweet.author_id)
-    .map((tweet) => ({
-      id: tweet.id,
-      text: tweet.text,
-      author_id: tweet.author_id as string,
-      created_at: tweet.created_at,
-      author: usersById.get(tweet.author_id as string)
-    }));
+  return fetchRecentDirectMentionSearch(limit);
+}
+
+async function fetchRecentDirectMentionSearch(limit?: number): Promise<XMention[]> {
+  const config = getConfig();
+  const searchMaxResults = String(Math.max(10, limit ?? config.maxMentionsPerPoll));
+  const query = `@${config.botUsername} -is:retweet -from:${config.botUsername}`;
+
+  try {
+    const response = await xApiGet<XTweetResponse>("/tweets/search/recent", {
+      query,
+      max_results: searchMaxResults,
+      expansions: "author_id",
+      "tweet.fields": "author_id,created_at",
+      "user.fields": "id,name,username,profile_image_url,protected"
+    });
+
+    const mentions = tweetsToMentions(response).filter((mention) => isDirectMention(mention.text, config.botUsername));
+    console.info("x.mentions.search_fallback", {
+      query,
+      fetched: mentions.length
+    });
+
+    return mentions;
+  } catch (error) {
+    console.warn("x.mentions.search_fallback_failed", summarizeXApiError(error));
+    return [];
+  }
 }
 
 export async function fetchUserById(userId: string) {

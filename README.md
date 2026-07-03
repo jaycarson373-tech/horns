@@ -1,8 +1,8 @@
 # AnsemPfpBot
 
-AnsemPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a warm viral meme-PFP style, and replies to that exact mention with `Ansemified.` plus the edited image.
+AnsemPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a photorealistic Ansem-template flash-photo PFP, and replies to that exact mention with `Ansemified.` plus the edited image.
 
-The transformation keeps the user's PFP recognizable, then pushes it toward a low-res flash-photo, party-room, Ansem Army style. It does not do keyword search and it does not process random public posts.
+The transformation uses the warm wood-cabinet, yellow-shirt, over-the-shoulder Ansem setup as the template, then swaps the face and identity cues to match the user's PFP. It does not do keyword search and it does not process random public posts.
 
 ## Setup
 

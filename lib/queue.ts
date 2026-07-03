@@ -1,4 +1,4 @@
-import { countRecentReplies, createProcessedMention, updateProcessedMention } from "./supabase";
+import { createProcessedMention, updateProcessedMention } from "./supabase";
 import { getConfig } from "./config";
 import {
   cleanupTransformationImage,
@@ -49,10 +49,6 @@ function eventName(name: string) {
   return `${projectKey}.${name}`;
 }
 
-function oneHourAgoIso() {
-  return new Date(Date.now() - 60 * 60 * 1000).toISOString();
-}
-
 function isOlderThanLimit(createdAt: string | undefined, maxAgeMinutes: number) {
   if (!createdAt || maxAgeMinutes === 0) {
     return false;
@@ -66,8 +62,8 @@ function isOlderThanLimit(createdAt: string | undefined, maxAgeMinutes: number) 
   return Date.now() - created > maxAgeMinutes * 60 * 1000;
 }
 
-function isRetryableExistingStatus(status: string) {
-  return status === "failed";
+function isRetryableExistingRecord(status: string, error?: string | null) {
+  return status === "failed" || (status === "skipped" && error?.endsWith("_rate_limited"));
 }
 
 async function markSkipped(mention: XMention, reason: string, author?: XAuthor, profileImageUrl?: string): Promise<MentionProcessOutcome> {
@@ -132,25 +128,6 @@ async function processDryRun(mention: XMention, author: XAuthor, profileImageUrl
   }
 }
 
-async function enforceRateLimits(mention: XMention) {
-  const config = getConfig();
-  const since = oneHourAgoIso();
-  const [authorReplyCount, globalReplyCount] = await Promise.all([
-    countRecentReplies(since, mention.author_id),
-    countRecentReplies(since)
-  ]);
-
-  if (authorReplyCount >= 1) {
-    return "user_rate_limited";
-  }
-
-  if (globalReplyCount >= config.maxGlobalRepliesPerHour) {
-    return "global_rate_limited";
-  }
-
-  return undefined;
-}
-
 async function processMention(mention: XMention): Promise<MentionProcessOutcome> {
   const config = getConfig();
   const initialProfileImageUrl = mention.author?.profile_image_url
@@ -165,7 +142,7 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
     status: "queued"
   });
 
-  if (!created.created && !isRetryableExistingStatus(created.record?.status ?? "")) {
+  if (!created.created && !isRetryableExistingRecord(created.record?.status ?? "", created.record?.error)) {
     return {
       mentionId: mention.id,
       status: "duplicate",
@@ -174,10 +151,11 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
   }
 
   if (!created.created) {
-    logEvent(eventName("mention.retrying_failed"), {
+    logEvent(eventName("mention.retrying_existing"), {
       mentionId: mention.id,
       authorId: mention.author_id,
-      previousStatus: created.record?.status
+      previousStatus: created.record?.status,
+      previousError: created.record?.error
     });
   }
 
@@ -214,11 +192,6 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
       authorUsername: author.username ?? null,
       profileImageUrl
     });
-
-    const rateLimitReason = await enforceRateLimits(mention);
-    if (rateLimitReason) {
-      return markSkipped(mention, rateLimitReason, author, profileImageUrl);
-    }
 
     if (config.dryRun) {
       return processDryRun(mention, author, profileImageUrl);

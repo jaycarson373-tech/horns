@@ -373,7 +373,7 @@ export async function replyToMentionWithImage(mentionId: string, mediaId: string
       }
     }
 
-    throw new NonRetryableError("X rejected all Catify reply text variants");
+    throw new NonRetryableError(`X rejected all ${botConfig.botName} reply text variants`);
   }
 
   return withRetry("x.reply", async () => {
@@ -406,6 +406,6 @@ export async function replyToMentionWithImage(mentionId: string, mediaId: string
       }
     }
 
-    throw new NonRetryableError("X rejected all Catify reply text variants");
+    throw new NonRetryableError(`X rejected all ${botConfig.botName} reply text variants`);
   });
 }

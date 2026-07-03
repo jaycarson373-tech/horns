@@ -23,7 +23,7 @@ async function main() {
     try {
       await runBotOnce("worker");
     } catch (error) {
-      console.error("catify.poll.failed", error);
+      console.error(`${config.botProjectKey}.poll.failed`, error);
     }
 
     if (once || stopping) {
@@ -35,6 +35,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("catify.worker.fatal", error);
+  console.error("bot.worker.fatal", error);
   process.exitCode = 1;
 });

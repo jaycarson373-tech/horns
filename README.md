@@ -1,6 +1,8 @@
-# CatifyBot
+# AnsemPfpBot
 
-CatifyBot is an opt-in X bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a cute kitten avatar, and replies to that exact mention with `Catified. 🐱` plus the edited image.
+AnsemPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a warm viral meme-PFP style, and replies to that exact mention with `Ansemified.` plus the edited image.
+
+The transformation keeps the user's PFP recognizable, then pushes it toward a low-res flash-photo, party-room, Ansem Army style. It does not do keyword search and it does not process random public posts.
 
 ## Setup
 
@@ -46,10 +48,45 @@ Deploy from GitHub:
 Required bot vars:
 
 ```env
-BOT_USERNAME=CatifyBot
+BOT_USERNAME=AnsemPfpBot
 BOT_USER_ID=
-BOT_PROJECT_KEY=catifybot
+BOT_PROJECT_KEY=ansem-pfp-bot
 DRY_RUN=true
+```
+
+Use the real handle for the new account. If the account is `@SomeNewBot`, set:
+
+```env
+BOT_USERNAME=SomeNewBot
+BOT_PROJECT_KEY=some-new-bot
+```
+
+## Get Bot User ID
+
+Run this after the new X account exists:
+
+```bash
+curl -s "https://api.x.com/2/users/by/username/YOUR_BOT_USERNAME" \
+  -H "Authorization: Bearer YOUR_X_BEARER_TOKEN"
+```
+
+Copy the returned `data.id` into Railway as `BOT_USER_ID`.
+
+## Test A Mention
+
+From a different public X account, post a brand-new public post with the handle visibly in the text:
+
+```text
+@YOUR_BOT_USERNAME make my pfp
+```
+
+Do not just reply without typing the handle. The bot reads the X mentions endpoint, so the post must contain the visible `@YOUR_BOT_USERNAME`.
+
+Success logs look like:
+
+```text
+event: ansem-pfp-bot.mention.replied
+event: ansem-pfp-bot.poll.complete ... replied: 1 failed: 0
 ```
 
 ## Local Running
@@ -85,7 +122,7 @@ npm run poll:once
 
 Replicate models have different input schemas, so set `REPLICATE_MODEL`, `REPLICATE_PROMPT_FIELD`, and `REPLICATE_IMAGE_FIELD` for the model you choose.
 
-`SHARP_FALLBACK_ENABLED=true` enables a simple local cat-face overlay if the image provider is unavailable or fails. Keep it off if every public reply must be AI-edited.
+`SHARP_FALLBACK_ENABLED=true` enables a simple local warm flash-photo treatment if the image provider is unavailable or fails. Keep it off if every public reply must be AI-edited.
 
 ## Configuration
 
@@ -96,5 +133,6 @@ Bot-specific branding lives in [lib/botConfig.ts](./lib/botConfig.ts):
 - `transformationName`
 - `imagePrompt`
 - `replyText`
+- `replyTextFallbacks`
 
 Future transformation bots should change that file first instead of rewriting queue, X, or Supabase logic.

@@ -296,36 +296,43 @@ async function editWithReplicate(buffer: Buffer) {
   throw new Error("Replicate prediction timed out");
 }
 
-async function addCatifyWithSharp(buffer: Buffer) {
+async function addMemePfpWithSharp(buffer: Buffer) {
   const metadata = await sharp(buffer).metadata();
   const width = metadata.width ?? 1024;
   const height = metadata.height ?? 1024;
-  const strokeWidth = Math.max(3, Math.round(width * 0.008));
-  const whiskerWidth = Math.max(2, Math.round(width * 0.004));
 
   const overlay = Buffer.from(`
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="face" cx="50%" cy="45%" r="50%">
-          <stop offset="0%" stop-color="#ffe7b8" stop-opacity="0.92"/>
-          <stop offset="70%" stop-color="#f2ad5d" stop-opacity="0.88"/>
-          <stop offset="100%" stop-color="#d67b35" stop-opacity="0.9"/>
+        <radialGradient id="vignette" cx="50%" cy="45%" r="65%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+          <stop offset="72%" stop-color="#111111" stop-opacity="0.04"/>
+          <stop offset="100%" stop-color="#050505" stop-opacity="0.28"/>
         </radialGradient>
+        <linearGradient id="flash" x1="0%" x2="100%" y1="0%" y2="10%">
+          <stop offset="0%" stop-color="#ffe8a8" stop-opacity="0.10"/>
+          <stop offset="54%" stop-color="#ffffff" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#ff6b1f" stop-opacity="0.22"/>
+        </radialGradient>
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feComponentTransfer>
+            <feFuncA type="table" tableValues="0 0.06"/>
+          </feComponentTransfer>
+        </filter>
       </defs>
-      <path d="M ${width * 0.31} ${height * 0.26} L ${width * 0.38} ${height * 0.10} L ${width * 0.47} ${height * 0.30} Z" fill="#d97836" stroke="#432615" stroke-width="${strokeWidth}" stroke-linejoin="round" opacity="0.92"/>
-      <path d="M ${width * 0.69} ${height * 0.26} L ${width * 0.62} ${height * 0.10} L ${width * 0.53} ${height * 0.30} Z" fill="#d97836" stroke="#432615" stroke-width="${strokeWidth}" stroke-linejoin="round" opacity="0.92"/>
-      <circle cx="${width * 0.50}" cy="${height * 0.50}" r="${width * 0.29}" fill="url(#face)" stroke="#432615" stroke-width="${strokeWidth}" opacity="0.9"/>
-      <ellipse cx="${width * 0.40}" cy="${height * 0.45}" rx="${width * 0.045}" ry="${height * 0.06}" fill="#151515"/>
-      <ellipse cx="${width * 0.60}" cy="${height * 0.45}" rx="${width * 0.045}" ry="${height * 0.06}" fill="#151515"/>
-      <circle cx="${width * 0.382}" cy="${height * 0.425}" r="${width * 0.012}" fill="#ffffff"/>
-      <circle cx="${width * 0.582}" cy="${height * 0.425}" r="${width * 0.012}" fill="#ffffff"/>
-      <path d="M ${width * 0.50} ${height * 0.50} L ${width * 0.47} ${height * 0.55} L ${width * 0.53} ${height * 0.55} Z" fill="#d45d6a"/>
-      <path d="M ${width * 0.47} ${height * 0.57} C ${width * 0.49} ${height * 0.60}, ${width * 0.51} ${height * 0.60}, ${width * 0.53} ${height * 0.57}" fill="none" stroke="#432615" stroke-width="${whiskerWidth}" stroke-linecap="round"/>
-      <path d="M ${width * 0.30} ${height * 0.52} L ${width * 0.43} ${height * 0.54} M ${width * 0.30} ${height * 0.58} L ${width * 0.43} ${height * 0.57} M ${width * 0.70} ${height * 0.52} L ${width * 0.57} ${height * 0.54} M ${width * 0.70} ${height * 0.58} L ${width * 0.57} ${height * 0.57}" stroke="#432615" stroke-width="${whiskerWidth}" stroke-linecap="round"/>
+      <rect width="100%" height="100%" fill="url(#flash)"/>
+      <rect width="100%" height="100%" fill="url(#vignette)"/>
+      <rect width="100%" height="100%" filter="url(#grain)" opacity="0.55"/>
     </svg>
   `);
 
-  return sharp(buffer).composite([{ input: overlay, top: 0, left: 0 }]).png().toBuffer();
+  return sharp(buffer)
+    .modulate({ brightness: 1.04, saturation: 1.12 })
+    .composite([{ input: overlay, top: 0, left: 0, blend: "over" }])
+    .png()
+    .toBuffer();
 }
 
 async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: TransformationImageResult["provider"] }> {
@@ -357,7 +364,7 @@ async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: Tr
   }
 
   if (preferredProvider === "sharp" || config.sharpFallbackEnabled) {
-    return { buffer: await addCatifyWithSharp(buffer), provider: "sharp" };
+    return { buffer: await addMemePfpWithSharp(buffer), provider: "sharp" };
   }
 
   throw new Error("No image edit provider is configured");

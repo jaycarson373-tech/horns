@@ -3,7 +3,6 @@ export type TransformationBotConfig = {
   defaultBotUsername: string;
   transformationName: string;
   imagePrompt: string;
-  templateImagePath: string;
   replyText: string;
   replyTextFallbacks: string[];
   tempFilePrefix: string;
@@ -12,15 +11,14 @@ export type TransformationBotConfig = {
 };
 
 export const botConfig: TransformationBotConfig = {
-  botName: "AnsemPfpBot",
-  defaultBotUsername: "AnsemPfpBot",
-  transformationName: "ansemified",
+  botName: "BullifyBot",
+  defaultBotUsername: "BullifyBot",
+  transformationName: "bullified",
   imagePrompt:
-    "You are performing a face replacement, not generating a new image. Reference A is the user's profile picture. Reference B is the official ANSEMFY template. Recreate Reference B almost perfectly. Only change one thing: replace the face in Reference B with the identity from Reference A. Everything else must remain identical to Reference B: exact camera angle, exact body pose, exact smile, exact head rotation, exact shirt, exact haircut shape, exact kitchen background, exact warm orange lighting, exact crop, exact composition, exact proportions, and exact color grading. The output must immediately be recognizable as the ANSEMFY template. Do not invent a new pose. Do not invent new clothing. Do not invent a new background. Do not change the framing. Do not create a cartoon or illustration. Do not stylize. Every output should look like it came from the exact same photograph, with only the person's face changed. This consistency is extremely important because all generated profile pictures need to look like members of the same army.",
-  templateImagePath: "assets/ansem-template.jpg",
-  replyText: "Ansemified.",
-  replyTextFallbacks: ["Ansem mode enabled.", "Become Ansem.", "PFP upgraded."],
-  tempFilePrefix: "ansem-pfp",
-  mediaFilename: "ansemified.png",
-  userAgent: "ansem-pfp-bot/0.1.0"
+    "Add realistic stylish bull horns to the subject in this profile picture. Preserve the original face, identity, pose, expression, clothing, accessories, art style, background, colors, crop, lighting, and composition. Only add horns. The horns should be symmetrical, attached naturally to the head or hairline, curved upward/outward like strong bull horns, dark charcoal to bone-gray with realistic texture and highlights. Do not change the face. Do not turn the person into a bull. Do not add text, logos, extra characters, fantasy effects, glowing rings, wings, helmets, or new backgrounds. If the input is a cartoon, mascot, animal, or stylized avatar, add matching horns in the same art style while preserving the original image.",
+  replyText: "Bullified.",
+  replyTextFallbacks: ["Bull mode enabled.", "You have been bullified.", "The horns stay on."],
+  tempFilePrefix: "bullify",
+  mediaFilename: "bullified.png",
+  userAgent: "bullify-bot/0.1.0"
 };

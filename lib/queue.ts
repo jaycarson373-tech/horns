@@ -11,7 +11,7 @@ import {
 import {
   fetchRecentMentions,
   fetchUserById,
-  isDirectMention,
+  isMentionToBot,
   replyToMentionWithImage,
   toHighestQualityProfileImageUrl,
   uploadImageForTweet,
@@ -162,7 +162,7 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
   await updateProcessedMention(mention.id, { status: "processing" });
 
   try {
-    if (!isDirectMention(mention.text, config.botUsername)) {
+    if (!isMentionToBot(mention, config.botUsername, config.botUserId)) {
       return markSkipped(mention, "not_a_direct_mention", mention.author, initialProfileImageUrl);
     }
 

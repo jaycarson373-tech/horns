@@ -21,14 +21,6 @@ export type XMention = {
   author_id: string;
   created_at?: string;
   author?: XAuthor;
-  entities?: {
-    mentions?: Array<{
-      id?: string;
-      username?: string;
-    }>;
-  };
-  in_reply_to_user_id?: string;
-  source: "timeline" | "search";
 };
 
 type XTweetResponse = {
@@ -37,8 +29,6 @@ type XTweetResponse = {
     text: string;
     author_id?: string;
     created_at?: string;
-    entities?: XMention["entities"];
-    in_reply_to_user_id?: string;
   }>;
   includes?: {
     users?: XAuthor[];
@@ -104,31 +94,13 @@ export function isDirectMention(text: string, botUsername: string) {
   return new RegExp(`(^|[^A-Za-z0-9_])@${escapeRegExp(username)}\\b`, "i").test(text);
 }
 
-export function isMentionToBot(mention: XMention, botUsername: string, botUserId: string) {
-  if (mention.source === "timeline") {
-    return true;
-  }
-
-  if (mention.in_reply_to_user_id === botUserId) {
-    return true;
-  }
-
-  const normalizedUsername = botUsername.replace(/^@+/, "").toLowerCase();
-  const entityMentions = mention.entities?.mentions ?? [];
-  const mentionsBotEntity = entityMentions.some((entityMention) => {
-    return entityMention.id === botUserId || entityMention.username?.toLowerCase() === normalizedUsername;
-  });
-
-  return mentionsBotEntity || isDirectMention(mention.text, botUsername);
-}
-
 export function toHighestQualityProfileImageUrl(profileImageUrl: string) {
   const url = new URL(profileImageUrl);
   url.pathname = url.pathname.replace(/_(normal|bigger|mini)(\.[^.]+)$/i, "$2");
   return url.toString();
 }
 
-function tweetsToMentions(response: XTweetResponse, source: XMention["source"]) {
+function tweetsToMentions(response: XTweetResponse) {
   const usersById = new Map((response.includes?.users ?? []).map((user) => [user.id, user]));
 
   return (response.data ?? [])
@@ -138,10 +110,7 @@ function tweetsToMentions(response: XTweetResponse, source: XMention["source"]) 
       text: tweet.text,
       author_id: tweet.author_id,
       created_at: tweet.created_at,
-      author: usersById.get(tweet.author_id),
-      entities: tweet.entities,
-      in_reply_to_user_id: tweet.in_reply_to_user_id,
-      source
+      author: usersById.get(tweet.author_id)
     }));
 }
 
@@ -272,11 +241,11 @@ export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
   const response = await xApiGet<XTweetResponse>(`/users/${config.botUserId}/mentions`, {
     max_results: maxResults,
     expansions: "author_id",
-    "tweet.fields": "author_id,created_at,entities,in_reply_to_user_id",
+    "tweet.fields": "author_id,created_at",
     "user.fields": "id,name,username,profile_image_url,protected"
   });
 
-  const mentions = tweetsToMentions(response, "timeline");
+  const mentions = tweetsToMentions(response);
   const searchMentions = await fetchRecentDirectMentionSearch(limit);
   const mentionsById = new Map<string, XMention>();
 
@@ -300,20 +269,18 @@ export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
 async function fetchRecentDirectMentionSearch(limit?: number): Promise<XMention[]> {
   const config = getConfig();
   const searchMaxResults = String(Math.max(10, limit ?? config.maxMentionsPerPoll));
-  const query = `(@${config.botUsername} OR to:${config.botUsername}) -is:retweet -from:${config.botUsername}`;
+  const query = `@${config.botUsername} -is:retweet -from:${config.botUsername}`;
 
   try {
     const response = await xApiGet<XTweetResponse>("/tweets/search/recent", {
       query,
       max_results: searchMaxResults,
       expansions: "author_id",
-      "tweet.fields": "author_id,created_at,entities,in_reply_to_user_id",
+      "tweet.fields": "author_id,created_at",
       "user.fields": "id,name,username,profile_image_url,protected"
     });
 
-    const mentions = tweetsToMentions(response, "search").filter((mention) =>
-      isMentionToBot(mention, config.botUsername, config.botUserId)
-    );
+    const mentions = tweetsToMentions(response).filter((mention) => isDirectMention(mention.text, config.botUsername));
     console.info("x.mentions.search", {
       query,
       fetched: mentions.length

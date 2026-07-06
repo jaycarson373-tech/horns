@@ -128,7 +128,7 @@ npm run poll:once
 
 Replicate models have different input schemas, so set `REPLICATE_MODEL`, `REPLICATE_PROMPT_FIELD`, and `REPLICATE_IMAGE_FIELD` for the model you choose.
 
-`SHARP_FALLBACK_ENABLED=true` enables a simple local warm flash-photo treatment if the image provider is unavailable or fails. Keep it off if every public reply must be AI-edited.
+`SHARP_FALLBACK_ENABLED=true` makes failed image edits reply with the official ANSEMFY fallback PFP from `assets/ansem-template.jpg`. Keep it off if every public reply must be AI-edited.
 
 ## Configuration
 

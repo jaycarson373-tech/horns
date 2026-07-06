@@ -25,7 +25,7 @@ export class UnavailableImageError extends NonRetryableError {
 
 export type TransformationImageResult = {
   filePath: string;
-  provider: "openai" | "replicate" | "sharp";
+  provider: "openai" | "replicate" | "sharp" | "fallback";
   sourceImageUrl: string;
 };
 
@@ -396,7 +396,7 @@ async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: Tr
   }
 
   if (preferredProvider === "sharp" || config.sharpFallbackEnabled) {
-    return { buffer: await addMemePfpWithSharp(buffer), provider: "sharp" };
+    return { buffer: await readTemplateImage(), provider: "fallback" };
   }
 
   throw new Error("No image edit provider is configured");

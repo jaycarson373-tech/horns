@@ -108,6 +108,35 @@ async function normalizeToPng(buffer: Buffer) {
   }
 }
 
+async function normalizeTemplateToPng(buffer: Buffer) {
+  try {
+    return await sharp(buffer, { animated: false })
+      .rotate()
+      .resize({
+        width: 1024,
+        height: 1024,
+        fit: "cover"
+      })
+      .png()
+      .toBuffer();
+  } catch {
+    throw new UnavailableImageError("ANSEMFY template image could not be decoded");
+  }
+}
+
+async function readTemplateImage() {
+  try {
+    const template = await fs.readFile(path.resolve(process.cwd(), botConfig.templateImagePath));
+    return normalizeTemplateToPng(template);
+  } catch (error) {
+    if (error instanceof UnavailableImageError) {
+      throw error;
+    }
+
+    throw new UnavailableImageError(`ANSEMFY template image is missing at ${botConfig.templateImagePath}`);
+  }
+}
+
 async function assertImageIsSafe(buffer: Buffer) {
   const config = getConfig();
   if (!config.moderationEnabled) {
@@ -160,7 +189,7 @@ async function assertImageIsSafe(buffer: Buffer) {
   }
 }
 
-async function openAIImageEdit(buffer: Buffer, imageFieldName: "image[]" | "image") {
+async function openAIImageEdit(sourceBuffer: Buffer, templateBuffer: Buffer, imageFieldName: "image[]" | "image") {
   const config = getConfig();
   if (!config.openaiApiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
@@ -170,7 +199,8 @@ async function openAIImageEdit(buffer: Buffer, imageFieldName: "image[]" | "imag
   formData.append("model", config.openaiImageModel);
   formData.append("prompt", botConfig.imagePrompt);
   formData.append("n", "1");
-  formData.append(imageFieldName, new Blob([new Uint8Array(buffer)], { type: "image/png" }), "profile.png");
+  formData.append(imageFieldName, new Blob([new Uint8Array(sourceBuffer)], { type: "image/png" }), "reference-a-user-profile.png");
+  formData.append(imageFieldName, new Blob([new Uint8Array(templateBuffer)], { type: "image/png" }), "reference-b-ansemfy-template.png");
 
   const response = await fetch(`${config.openaiBaseUrl}/images/edits`, {
     method: "POST",
@@ -196,11 +226,13 @@ async function openAIImageEdit(buffer: Buffer, imageFieldName: "image[]" | "imag
 }
 
 async function editWithOpenAI(buffer: Buffer) {
+  const template = await readTemplateImage();
+
   try {
-    return await withRetry("openai.image_edit", () => openAIImageEdit(buffer, "image[]"));
+    return await withRetry("openai.image_edit", () => openAIImageEdit(buffer, template, "image[]"));
   } catch (error) {
     if (error instanceof NonRetryableHttpError && error.status === 400) {
-      return withRetry("openai.image_edit_legacy_field", () => openAIImageEdit(buffer, "image"));
+      return withRetry("openai.image_edit_legacy_field", () => openAIImageEdit(buffer, template, "image"));
     }
 
     throw error;
@@ -296,46 +328,7 @@ async function editWithReplicate(buffer: Buffer) {
   throw new Error("Replicate prediction timed out");
 }
 
-async function addBullHornsWithSharp(buffer: Buffer) {
-  const metadata = await sharp(buffer).metadata();
-  const width = metadata.width ?? 1024;
-  const height = metadata.height ?? 1024;
-  const hornStroke = Math.max(14, Math.round(width * 0.045));
-  const highlightStroke = Math.max(4, Math.round(width * 0.014));
-  const shadowBlur = Math.max(2, Math.round(width * 0.008));
-
-  const overlay = Buffer.from(`
-    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="leftHorn" x1="100%" x2="0%" y1="100%" y2="0%">
-          <stop offset="0%" stop-color="#141414"/>
-          <stop offset="45%" stop-color="#77786f"/>
-          <stop offset="100%" stop-color="#f3f0e5"/>
-        </linearGradient>
-        <linearGradient id="rightHorn" x1="0%" x2="100%" y1="100%" y2="0%">
-          <stop offset="0%" stop-color="#141414"/>
-          <stop offset="45%" stop-color="#77786f"/>
-          <stop offset="100%" stop-color="#f3f0e5"/>
-        </linearGradient>
-        <filter id="hornShadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="${Math.max(2, Math.round(height * 0.006))}" stdDeviation="${shadowBlur}" flood-color="#000000" flood-opacity="0.35"/>
-        </filter>
-      </defs>
-      <path d="M ${width * 0.41} ${height * 0.31} C ${width * 0.27} ${height * 0.27}, ${width * 0.16} ${height * 0.15}, ${width * 0.11} ${height * 0.045}"
-        fill="none" stroke="url(#leftHorn)" stroke-width="${hornStroke}" stroke-linecap="round" filter="url(#hornShadow)"/>
-      <path d="M ${width * 0.59} ${height * 0.31} C ${width * 0.73} ${height * 0.27}, ${width * 0.84} ${height * 0.15}, ${width * 0.89} ${height * 0.045}"
-        fill="none" stroke="url(#rightHorn)" stroke-width="${hornStroke}" stroke-linecap="round" filter="url(#hornShadow)"/>
-      <path d="M ${width * 0.40} ${height * 0.295} C ${width * 0.27} ${height * 0.24}, ${width * 0.18} ${height * 0.13}, ${width * 0.125} ${height * 0.045}"
-        fill="none" stroke="#ffffff" stroke-opacity="0.36" stroke-width="${highlightStroke}" stroke-linecap="round"/>
-      <path d="M ${width * 0.60} ${height * 0.295} C ${width * 0.73} ${height * 0.24}, ${width * 0.82} ${height * 0.13}, ${width * 0.875} ${height * 0.045}"
-        fill="none" stroke="#ffffff" stroke-opacity="0.36" stroke-width="${highlightStroke}" stroke-linecap="round"/>
-    </svg>
-  `);
-
-  return sharp(buffer).composite([{ input: overlay, top: 0, left: 0, blend: "over" }]).png().toBuffer();
-}
-
-async function unusedLegacyPfpWithSharp(buffer: Buffer) {
+async function addMemePfpWithSharp(buffer: Buffer) {
   const metadata = await sharp(buffer).metadata();
   const width = metadata.width ?? 1024;
   const height = metadata.height ?? 1024;
@@ -403,7 +396,7 @@ async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: Tr
   }
 
   if (preferredProvider === "sharp" || config.sharpFallbackEnabled) {
-    return { buffer: await addBullHornsWithSharp(buffer), provider: "sharp" };
+    return { buffer: await addMemePfpWithSharp(buffer), provider: "sharp" };
   }
 
   throw new Error("No image edit provider is configured");

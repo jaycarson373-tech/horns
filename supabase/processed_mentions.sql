@@ -2,7 +2,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.processed_mentions (
   id uuid primary key default gen_random_uuid(),
-  bot_project text not null default 'bullify-bot',
+  bot_project text not null default 'ansem-pfp-bot',
   mention_id text not null,
   author_id text not null,
   author_username text,
@@ -22,7 +22,7 @@ set bot_project = 'legacy-bot'
 where bot_project is null;
 
 alter table public.processed_mentions
-  alter column bot_project set default 'bullify-bot',
+  alter column bot_project set default 'ansem-pfp-bot',
   alter column bot_project set not null;
 
 alter table public.processed_mentions

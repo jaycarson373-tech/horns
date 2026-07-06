@@ -1,8 +1,8 @@
-# BullifyBot
+# AnsemPfpBot
 
-BullifyBot is an opt-in X reply bot. It polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it by adding realistic bull horns, and replies to that exact mention with `Bullified.` plus the edited image.
+AnsemPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into the official ANSEMFY template by replacing the template face, and replies to that exact mention with `Ansemified.` plus the edited image.
 
-It does not process random keyword matches. The fallback mention search only searches for visible direct mentions of the bot handle, excludes retweets, and excludes posts from the bot itself.
+The transformation sends the user's PFP as Reference A and [assets/ansem-template.jpg](./assets/ansem-template.jpg) as Reference B. The template pose, shirt, background, crop, lighting, and composition should stay fixed while the face/identity changes. It does not do keyword search and it does not process random public posts.
 
 ## Setup
 
@@ -48,17 +48,17 @@ Deploy from GitHub:
 Required bot vars:
 
 ```env
-BOT_USERNAME=BullifyBot
+BOT_USERNAME=AnsemPfpBot
 BOT_USER_ID=
-BOT_PROJECT_KEY=bullify-bot
+BOT_PROJECT_KEY=ansem-pfp-bot
 DRY_RUN=true
 ```
 
-Use the real handle for the live account. If the account is `@SomeNewBot`, set:
+Use the real handle for the new account. If the account is `@SomeNewBot`, set:
 
 ```env
 BOT_USERNAME=SomeNewBot
-BOT_PROJECT_KEY=bullify-bot
+BOT_PROJECT_KEY=some-new-bot
 ```
 
 ## Get Bot User ID
@@ -77,16 +77,16 @@ Copy the returned `data.id` into Railway as `BOT_USER_ID`.
 From a different public X account, post a brand-new public post with the handle visibly in the text:
 
 ```text
-@YOUR_BOT_USERNAME bullify me
+@YOUR_BOT_USERNAME make my pfp
 ```
 
-Replies also work if the reply text contains the visible `@YOUR_BOT_USERNAME`.
+Do not just reply without typing the handle. The bot reads the X mentions endpoint, so the post must contain the visible `@YOUR_BOT_USERNAME`.
 
 Success logs look like:
 
 ```text
-event: bullify-bot.mention.replied
-event: bullify-bot.poll.complete ... replied: 1 failed: 0
+event: ansem-pfp-bot.mention.replied
+event: ansem-pfp-bot.poll.complete ... replied: 1 failed: 0
 ```
 
 For launch/backlog processing, set:
@@ -112,9 +112,11 @@ npm run poll:once
 ## Safety Defaults
 
 - `DRY_RUN=true` by default; the bot logs actions without posting.
-- The bot only handles visible direct mentions of the configured bot handle.
+- No keyword search is used. The bot only calls the bot user's mentions timeline.
 - Mentions are stored in Supabase and are not processed twice once they succeed.
 - Failed mentions can retry after a deployment or auth fix.
+- `MAX_GLOBAL_REPLIES_PER_HOUR` defaults to `20`.
+- One reply per author per hour is enforced.
 - Protected/unavailable profiles are skipped.
 - OpenAI moderation runs when `OPENAI_API_KEY` is present and `MODERATION_ENABLED=true`.
 - `REQUIRE_IMAGE_MODERATION=true` makes missing moderation fail closed.
@@ -126,7 +128,7 @@ npm run poll:once
 
 Replicate models have different input schemas, so set `REPLICATE_MODEL`, `REPLICATE_PROMPT_FIELD`, and `REPLICATE_IMAGE_FIELD` for the model you choose.
 
-`SHARP_FALLBACK_ENABLED=true` enables a simple local bull-horns overlay if the image provider is unavailable or fails. Keep it off if every public reply must be AI-edited.
+`SHARP_FALLBACK_ENABLED=true` enables a simple local warm flash-photo treatment if the image provider is unavailable or fails. Keep it off if every public reply must be AI-edited.
 
 ## Configuration
 
@@ -136,6 +138,7 @@ Bot-specific branding lives in [lib/botConfig.ts](./lib/botConfig.ts):
 - `defaultBotUsername`
 - `transformationName`
 - `imagePrompt`
+- `templateImagePath`
 - `replyText`
 - `replyTextFallbacks`
 

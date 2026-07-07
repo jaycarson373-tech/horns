@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { botConfig } from "../lib/botConfig";
 import { getConfig } from "../lib/config";
 import { runBotOnce } from "../lib/queue";
 
@@ -18,6 +19,12 @@ process.on("SIGTERM", () => requestStop("SIGTERM"));
 async function main() {
   const once = process.argv.includes("--once");
   const config = getConfig();
+  console.info("bot.config", {
+    botProjectKey: config.botProjectKey,
+    botUsername: config.botUsername,
+    promptVersion: botConfig.promptVersion,
+    dryRun: config.dryRun
+  });
 
   do {
     try {

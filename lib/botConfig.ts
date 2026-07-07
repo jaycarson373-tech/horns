@@ -2,6 +2,7 @@ export type TransformationBotConfig = {
   botName: string;
   defaultBotUsername: string;
   transformationName: string;
+  promptVersion: string;
   imagePrompt: string;
   templateImagePath: string;
   replyText: string;
@@ -15,8 +16,9 @@ export const botConfig: TransformationBotConfig = {
   botName: "AnsemPfpBot",
   defaultBotUsername: "AnsemPfpBot",
   transformationName: "ansemified",
+  promptVersion: "ansem-face-v3-no-hoodie",
   imagePrompt:
-    "Create an ANSEMFY avatar using two references. Reference A is the user's profile picture and controls the person's identity: face shape, skin tone, eyes, eyebrows, facial hair, hair color, hairstyle, accessories, and any recognizable PFP traits. Reference B is the official ANSEMFY template and controls the meme format: warm kitchen background, orange flash lighting, side-facing body angle, head turned toward camera, confident smirk, square PFP crop, low-fi viral photo texture, and overall composition. The final image must look like the person from Reference A has been placed into the exact ANSEMFY template scene. Replace the face and identity from Reference B with Reference A. Do not keep the original template face. Do not turn everyone into the same person. Do not force a hoodie, hat, or any new clothing unless it is already an important part of Reference A. Keep clothing simple and consistent with the ANSEMFY photo, preferably the light shirt from the template unless Reference A has a signature accessory that should carry over. Preserve the ANSEMFY camera angle, body pose, head rotation, smile energy, crop, kitchen background, warm orange lighting, proportions, and color grading. Make it photorealistic, not cartoon, not anime, not illustration. No text, no logos, no fantasy effects, no extra people.",
+    "Perform a photorealistic ANSEMFY face/identity replacement using two references. Reference A is the user's profile picture. Use Reference A only for the person's identity: face shape, skin tone, eyes, eyebrows, nose, mouth, facial hair, hairline, hair color, hairstyle, glasses, and other facial/accessory traits visible on the head. Reference B is the official ANSEMFY template. Reference B controls everything else: exact kitchen background, warm orange flash lighting, square PFP crop, camera angle, side-facing body pose, head turned toward camera, smirk/smile energy, light yellow shirt, body proportions, low-fi grain, color grading, and composition. Output must look like the exact ANSEMFY photo/template with only the face/head identity changed to match Reference A. Do not change the outfit. Do not add a hoodie. Do not add a green hoodie. Do not add a blue hoodie. Do not add a jacket. Do not add streetwear. Do not add hats unless the user's PFP has eyewear/headwear that is central to their identity, and even then keep the ANSEMFY shirt/body/background unchanged. Do not make a new scene, new pose, new crop, new clothing, cartoon, anime, illustration, fantasy effect, logo, or text. Keep the result consistent across users: same ANSEMFY template, different user's face.",
   templateImagePath: "assets/ansem-template.jpg",
   replyText: "Ansemified.",
   replyTextFallbacks: ["Ansem mode enabled.", "Become Ansem.", "PFP upgraded."],

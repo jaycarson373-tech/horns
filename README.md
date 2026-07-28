@@ -1,8 +1,8 @@
-# TinfoilPfpBot
+# GumbusPfpBot
 
-TinfoilPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits a crinkled silver tinfoil hat onto the PFP, and replies to that exact mention with `Tinfoiled.` plus the edited image.
+GumbusPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a custom Gumbus / michi-style meme cat PFP, and replies to that exact mention with `Gumbified.` plus the edited image.
 
-The transformation preserves the original PFP's face, identity, pose, art style, background, crop, and composition. It should only add a shiny handmade aluminum foil hat on top of the subject's head. It does not do keyword search and it does not process random public posts.
+The transformation turns the subject into a cute weird internet cat avatar while preserving recognizable colors, accessories, vibe, pose, background, crop, and composition where possible. It does not do keyword search and it does not process random public posts.
 
 ## Setup
 
@@ -48,9 +48,9 @@ Deploy from GitHub:
 Required bot vars:
 
 ```env
-BOT_USERNAME=TinfoilPfpBot
+BOT_USERNAME=GumbusPfpBot
 BOT_USER_ID=
-BOT_PROJECT_KEY=tinfoil-pfp-bot
+BOT_PROJECT_KEY=gumbus-pfp-bot
 DRY_RUN=true
 ```
 
@@ -85,8 +85,8 @@ Do not just reply without typing the handle. The bot reads the X mentions endpoi
 Success logs look like:
 
 ```text
-event: tinfoil-pfp-bot.mention.replied
-event: tinfoil-pfp-bot.poll.complete ... replied: 1 failed: 0
+event: gumbus-pfp-bot.mention.replied
+event: gumbus-pfp-bot.poll.complete ... replied: 1 failed: 0
 ```
 
 For launch/backlog processing, set:
@@ -128,7 +128,11 @@ npm run poll:once
 
 Replicate models have different input schemas, so set `REPLICATE_MODEL`, `REPLICATE_PROMPT_FIELD`, and `REPLICATE_IMAGE_FIELD` for the model you choose.
 
-`SHARP_FALLBACK_ENABLED=true` makes failed image edits use a simple local Sharp foil-hat overlay. Keep it off if every public reply must be AI-edited.
+`SHARP_FALLBACK_ENABLED=true` makes failed image edits use a simple local Sharp michi-cat overlay. Keep it off if every public reply must be AI-edited.
+
+## Website
+
+A lightweight static launch site lives in [site/index.html](./site/index.html). It includes the Gumbus TikTok link, the bot concept, and the fee note.
 
 ## Configuration
 

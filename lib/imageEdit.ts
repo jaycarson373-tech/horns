@@ -373,52 +373,35 @@ async function addMemePfpWithSharp(buffer: Buffer) {
     .toBuffer();
 }
 
-async function addTinfoilHatWithSharp(buffer: Buffer) {
+async function addMichiCatFallbackWithSharp(buffer: Buffer) {
   const metadata = await sharp(buffer).metadata();
   const width = metadata.width ?? 1024;
   const height = metadata.height ?? 1024;
-  const hatWidth = Math.round(width * 0.46);
-  const hatHeight = Math.round(height * 0.32);
-  const hatLeft = Math.round((width - hatWidth) / 2);
-  const hatTop = Math.round(height * 0.04);
-  const strokeWidth = Math.max(2, Math.round(width * 0.006));
+  const faceSize = Math.round(Math.min(width, height) * 0.7);
+  const faceLeft = Math.round((width - faceSize) / 2);
+  const faceTop = Math.round(height * 0.16);
+  const stroke = Math.max(4, Math.round(width * 0.012));
 
   const overlay = Buffer.from(`
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="foil" x1="0%" x2="100%" y1="20%" y2="90%">
-          <stop offset="0%" stop-color="#f8f8f8"/>
-          <stop offset="18%" stop-color="#6f6f76"/>
-          <stop offset="33%" stop-color="#ffffff"/>
-          <stop offset="52%" stop-color="#9c9ca3"/>
-          <stop offset="70%" stop-color="#e8e8e8"/>
-          <stop offset="100%" stop-color="#4c4c53"/>
-        </linearGradient>
-        <filter id="grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="5" seed="11"/>
-          <feColorMatrix type="saturate" values="0"/>
-          <feComponentTransfer>
-            <feFuncA type="table" tableValues="0.15 0.45"/>
-          </feComponentTransfer>
-        </filter>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.35"/>
+          <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#000000" flood-opacity="0.25"/>
         </filter>
       </defs>
-      <g transform="translate(${hatLeft} ${hatTop})" filter="url(#shadow)">
-        <path d="M ${hatWidth * 0.08} ${hatHeight * 0.88}
-                 C ${hatWidth * 0.18} ${hatHeight * 0.35}, ${hatWidth * 0.4} ${hatHeight * 0.02}, ${hatWidth * 0.54} ${hatHeight * 0.1}
-                 C ${hatWidth * 0.72} ${hatHeight * 0.19}, ${hatWidth * 0.91} ${hatHeight * 0.54}, ${hatWidth * 0.94} ${hatHeight * 0.9}
-                 C ${hatWidth * 0.66} ${hatHeight * 0.99}, ${hatWidth * 0.34} ${hatHeight * 1.0}, ${hatWidth * 0.08} ${hatHeight * 0.88} Z"
-              fill="url(#foil)" stroke="#e5e5e5" stroke-width="${strokeWidth}"/>
-        <path d="M ${hatWidth * 0.18} ${hatHeight * 0.82} L ${hatWidth * 0.48} ${hatHeight * 0.13} L ${hatWidth * 0.38} ${hatHeight * 0.9}" stroke="#2d2d32" stroke-opacity="0.38" stroke-width="${strokeWidth}" fill="none"/>
-        <path d="M ${hatWidth * 0.5} ${hatHeight * 0.14} L ${hatWidth * 0.68} ${hatHeight * 0.88}" stroke="#ffffff" stroke-opacity="0.65" stroke-width="${strokeWidth}" fill="none"/>
-        <path d="M ${hatWidth * 0.12} ${hatHeight * 0.88} C ${hatWidth * 0.36} ${hatHeight * 0.77}, ${hatWidth * 0.64} ${hatHeight * 0.78}, ${hatWidth * 0.92} ${hatHeight * 0.89}" stroke="#ffffff" stroke-opacity="0.55" stroke-width="${strokeWidth + 1}" fill="none"/>
-        <path d="M ${hatWidth * 0.08} ${hatHeight * 0.88}
-                 C ${hatWidth * 0.18} ${hatHeight * 0.35}, ${hatWidth * 0.4} ${hatHeight * 0.02}, ${hatWidth * 0.54} ${hatHeight * 0.1}
-                 C ${hatWidth * 0.72} ${hatHeight * 0.19}, ${hatWidth * 0.91} ${hatHeight * 0.54}, ${hatWidth * 0.94} ${hatHeight * 0.9}
-                 C ${hatWidth * 0.66} ${hatHeight * 0.99}, ${hatWidth * 0.34} ${hatHeight * 1.0}, ${hatWidth * 0.08} ${hatHeight * 0.88} Z"
-              filter="url(#grain)" opacity="0.85"/>
+      <g transform="translate(${faceLeft} ${faceTop})" filter="url(#shadow)">
+        <path d="M ${faceSize * 0.18} ${faceSize * 0.32} L ${faceSize * 0.3} ${faceSize * 0.03} L ${faceSize * 0.42} ${faceSize * 0.28} Z" fill="#f4eee6" stroke="#171717" stroke-width="${stroke}" stroke-linejoin="round"/>
+        <path d="M ${faceSize * 0.58} ${faceSize * 0.28} L ${faceSize * 0.72} ${faceSize * 0.03} L ${faceSize * 0.82} ${faceSize * 0.33} Z" fill="#f4eee6" stroke="#171717" stroke-width="${stroke}" stroke-linejoin="round"/>
+        <ellipse cx="${faceSize * 0.5}" cy="${faceSize * 0.52}" rx="${faceSize * 0.37}" ry="${faceSize * 0.35}" fill="#f4eee6" stroke="#171717" stroke-width="${stroke}"/>
+        <ellipse cx="${faceSize * 0.36}" cy="${faceSize * 0.48}" rx="${faceSize * 0.1}" ry="${faceSize * 0.13}" fill="#ffffff" stroke="#171717" stroke-width="${stroke * 0.8}"/>
+        <ellipse cx="${faceSize * 0.64}" cy="${faceSize * 0.48}" rx="${faceSize * 0.1}" ry="${faceSize * 0.13}" fill="#ffffff" stroke="#171717" stroke-width="${stroke * 0.8}"/>
+        <circle cx="${faceSize * 0.39}" cy="${faceSize * 0.5}" r="${faceSize * 0.04}" fill="#171717"/>
+        <circle cx="${faceSize * 0.61}" cy="${faceSize * 0.5}" r="${faceSize * 0.04}" fill="#171717"/>
+        <circle cx="${faceSize * 0.42}" cy="${faceSize * 0.45}" r="${faceSize * 0.022}" fill="#ffffff"/>
+        <circle cx="${faceSize * 0.66}" cy="${faceSize * 0.43}" r="${faceSize * 0.022}" fill="#ffffff"/>
+        <path d="M ${faceSize * 0.5} ${faceSize * 0.58} l ${faceSize * -0.035} ${faceSize * 0.035} h ${faceSize * 0.07} Z" fill="#ef7a95" stroke="#171717" stroke-width="${stroke * 0.55}" stroke-linejoin="round"/>
+        <path d="M ${faceSize * 0.47} ${faceSize * 0.66} Q ${faceSize * 0.5} ${faceSize * 0.7} ${faceSize * 0.53} ${faceSize * 0.66}" fill="none" stroke="#171717" stroke-width="${stroke * 0.65}" stroke-linecap="round"/>
+        <path d="M ${faceSize * 0.2} ${faceSize * 0.58} L ${faceSize * 0.38} ${faceSize * 0.6} M ${faceSize * 0.2} ${faceSize * 0.66} L ${faceSize * 0.38} ${faceSize * 0.64} M ${faceSize * 0.8} ${faceSize * 0.58} L ${faceSize * 0.62} ${faceSize * 0.6} M ${faceSize * 0.8} ${faceSize * 0.66} L ${faceSize * 0.62} ${faceSize * 0.64}" stroke="#171717" stroke-width="${stroke * 0.55}" stroke-linecap="round"/>
       </g>
     </svg>
   `);
@@ -455,7 +438,7 @@ async function editImage(buffer: Buffer): Promise<{ buffer: Buffer; provider: Tr
   }
 
   if (preferredProvider === "sharp" || config.sharpFallbackEnabled) {
-    return { buffer: await addTinfoilHatWithSharp(buffer), provider: "fallback" };
+    return { buffer: await addMichiCatFallbackWithSharp(buffer), provider: "fallback" };
   }
 
   throw new Error("No image edit provider is configured");

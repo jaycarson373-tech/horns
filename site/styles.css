@@ -367,9 +367,105 @@ h2 {
   color: rgba(255, 244, 220, 0.78);
 }
 
+.generator {
+  margin-top: 26px;
+  padding: 26px;
+  border: 3px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 244, 220, 0.12);
+  box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.36);
+}
+
+.eyebrow.mini {
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  box-shadow: 4px 4px 0 var(--line);
+}
+
+.generator-copy h2 {
+  max-width: 760px;
+  margin: 0;
+  color: var(--paper);
+  font-size: clamp(2rem, 5vw, 4.7rem);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.generator-copy p {
+  max-width: 680px;
+  margin: 14px 0 0;
+  color: rgba(255, 244, 220, 0.8);
+  font-size: 1.08rem;
+  line-height: 1.5;
+}
+
+.generator-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.88fr) minmax(260px, 0.72fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 24px;
+}
+
+.generator-preview {
+  padding: 14px;
+  border: 3px solid var(--line);
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+#gumbus-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+}
+
+.ear-shape {
+  fill: #fff0dc;
+  stroke: #111116;
+  stroke-width: 24;
+  stroke-linejoin: round;
+}
+
+.generator-controls {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 3px solid var(--line);
+  border-radius: 22px;
+  background: var(--paper);
+  color: var(--line);
+}
+
+.generator-controls label {
+  display: grid;
+  gap: 7px;
+  font-weight: 900;
+}
+
+.generator-controls select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 3px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--line);
+  font: inherit;
+  font-weight: 800;
+}
+
+.generator-button {
+  width: 100%;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
 @media (max-width: 860px) {
   .hero,
-  .how-it-works {
+  .how-it-works,
+  .generator-grid {
     grid-template-columns: 1fr;
   }
 

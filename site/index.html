@@ -73,6 +73,114 @@
           <p>Use the reply image as your new Gumbus-ready PFP.</p>
         </div>
       </section>
+
+      <section class="generator" aria-labelledby="generator-title">
+        <div class="generator-copy">
+          <p class="eyebrow mini">PFP Generator</p>
+          <h2 id="generator-title">Build a Gumbus by hand.</h2>
+          <p>
+            Start with the clean white-background michi, then add the right kind of nonsense:
+            hats, ties, fur colors, and background flavors.
+          </p>
+        </div>
+
+        <div class="generator-grid">
+          <div class="generator-preview" aria-label="Custom Gumbus preview">
+            <svg id="gumbus-svg" viewBox="0 0 1000 1000" role="img" aria-labelledby="gumbus-svg-title">
+              <title id="gumbus-svg-title">Custom Gumbus PFP preview</title>
+              <rect id="svg-bg" width="1000" height="1000" rx="84" fill="#ffffff" />
+              <g id="sparkles" opacity="0">
+                <circle cx="152" cy="170" r="18" fill="#ff6fae" />
+                <circle cx="820" cy="184" r="14" fill="#62d7ff" />
+                <circle cx="778" cy="792" r="20" fill="#a8ff72" />
+                <path d="M218 760l20 44 44 20-44 20-20 44-20-44-44-20 44-20z" fill="#ffbf47" />
+              </g>
+              <g id="gumbus-character">
+                <path class="ear-shape" d="M260 353 366 114l92 243Z" />
+                <path class="ear-shape" d="M540 357 650 116l92 250Z" />
+                <ellipse id="fur-body" cx="500" cy="548" rx="318" ry="304" fill="#fff0dc" stroke="#111116" stroke-width="24" />
+                <path d="M302 372c52-36 126-53 198-53 83 0 157 24 205 68" fill="none" stroke="#111116" stroke-width="22" stroke-linecap="round" opacity=".2" />
+                <ellipse cx="382" cy="512" rx="92" ry="116" fill="#111116" />
+                <ellipse cx="622" cy="512" rx="92" ry="116" fill="#111116" />
+                <circle cx="414" cy="470" r="24" fill="#fff" />
+                <circle cx="654" cy="470" r="24" fill="#fff" />
+                <circle cx="356" cy="558" r="13" fill="#fff" opacity=".75" />
+                <circle cx="596" cy="558" r="13" fill="#fff" opacity=".75" />
+                <path d="M500 610 458 652h84z" fill="#ff6fae" stroke="#111116" stroke-width="12" stroke-linejoin="round" />
+                <path id="mouth-smile" d="M457 704q43 52 86 0" fill="none" stroke="#111116" stroke-width="18" stroke-linecap="round" />
+                <path id="mouth-blep" d="M462 704q38 32 76 0M500 710v46" fill="none" stroke="#111116" stroke-width="18" stroke-linecap="round" opacity="0" />
+                <path d="M218 610h178M216 690h184M604 610h178M600 690h184" stroke="#111116" stroke-width="16" stroke-linecap="round" />
+                <g id="tie-layer" opacity="0">
+                  <path id="tie-knot" d="M454 800h92l-46 56z" fill="#62d7ff" stroke="#111116" stroke-width="16" stroke-linejoin="round" />
+                  <path id="tie-body" d="M500 856 420 982h160z" fill="#62d7ff" stroke="#111116" stroke-width="16" stroke-linejoin="round" />
+                </g>
+                <g id="hat-layer" opacity="0">
+                  <path id="hat-brim" d="M274 310c130-54 328-54 456 0 24 10 22 52-4 59-136 36-316 36-452 0-26-7-28-49 0-59Z" fill="#ff6fae" stroke="#111116" stroke-width="18" />
+                  <path id="hat-top" d="M362 124h276l48 198c-112 36-260 36-372 0z" fill="#ff6fae" stroke="#111116" stroke-width="18" stroke-linejoin="round" />
+                </g>
+              </g>
+            </svg>
+          </div>
+
+          <form class="generator-controls" aria-label="Customize Gumbus">
+            <label>
+              Background
+              <select id="bg-select">
+                <option value="#ffffff">White</option>
+                <option value="#fff4dc">Cream</option>
+                <option value="#ff6fae">Pink</option>
+                <option value="#62d7ff">Blue</option>
+                <option value="#a8ff72">Green</option>
+                <option value="sparkle">Sparkle</option>
+              </select>
+            </label>
+
+            <label>
+              Fur
+              <select id="fur-select">
+                <option value="#fff0dc">Vanilla</option>
+                <option value="#f5b66d">Orange</option>
+                <option value="#a77b55">Milo</option>
+                <option value="#ece7dd">White</option>
+                <option value="#3b312d">Void</option>
+              </select>
+            </label>
+
+            <label>
+              Hat
+              <select id="hat-select">
+                <option value="none">None</option>
+                <option value="#ff6fae">Pink cap</option>
+                <option value="#62d7ff">Blue cap</option>
+                <option value="#a8ff72">Green cap</option>
+                <option value="#111116">Black cap</option>
+              </select>
+            </label>
+
+            <label>
+              Tie
+              <select id="tie-select">
+                <option value="none">None</option>
+                <option value="#62d7ff">Blue tie</option>
+                <option value="#ff6fae">Pink tie</option>
+                <option value="#a8ff72">Green tie</option>
+                <option value="#ffbf47">Gold tie</option>
+              </select>
+            </label>
+
+            <label>
+              Face
+              <select id="face-select">
+                <option value="smile">Smile</option>
+                <option value="blep">Blep</option>
+              </select>
+            </label>
+
+            <button class="button primary generator-button" id="download-button" type="button">Download PFP</button>
+          </form>
+        </div>
+      </section>
     </main>
+    <script src="./generator.js"></script>
   </body>
 </html>

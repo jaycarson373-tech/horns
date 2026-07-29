@@ -16,9 +16,10 @@ export const botConfig: TransformationBotConfig = {
   botName: "GumbusPfpBot",
   defaultBotUsername: "GumbusPfpBot",
   transformationName: "gumbified",
-  promptVersion: "gumbus-michi-v1",
+  promptVersion: "gumbus-reference-v2",
   imagePrompt:
-    "Transform this profile picture into a custom Gumbus / michi meme-cat PFP. Turn the subject into a cute weird internet cat avatar while preserving the original PFP's recognizable identity cues: colors, accessories, hat, outfit vibe, expression, pose, background, crop, and composition where possible. The result should look like a hand-drawn collectible meme PFP: simple bold black outlines, soft rounded cat head, giant glossy slightly goofy eyes, tiny nose and mouth, cute awkward expression, small cat ears, whiskers, and charming low-effort doodle energy. Make it feel like a Gumbus-inspired silly cat character, not a realistic animal photo. If the original PFP has a signature accessory or color palette, adapt it onto the cat. Keep it square, centered, clean, and viral profile-picture ready. Do not copy any exact existing character or asset. Do not include text, logos, watermarks, extra people, weapons, gore, or a new unrelated background.",
+    "Create a custom Gumbus profile picture using both supplied references. Reference A is the user's profile picture and provides the customization cues. Reference B is the official Gumbus cat and defines the character's face and anatomy. The finished subject must clearly be Gumbus: a gray-brown tabby cat with an extremely close wide-angle face, enormous glossy green-gray eyes, broad muzzle, large centered nose, tiny lower lip, upright ears, and a weird but cute expression. Preserve and adapt the most recognizable traits from Reference A onto Gumbus, including its art style, color palette, hat, glasses, clothing, accessories, expression, pose, lighting, and background where possible. If Reference A is illustrated, render Gumbus in that same illustration style. If Reference A is photographic, keep Gumbus photographic. Do not retain a human face or merely add cat ears. Do not replace Gumbus with a generic cat. Keep a centered square PFP crop with the face prominent and immediately readable at small size. Include no new text, logos, watermarks, extra subjects, unrelated props, gore, or weapons.",
+  templateImagePath: "site/gumbus-logo.png",
   replyText: "Gumbified.",
   replyTextFallbacks: ["Michi mode enabled.", "Gumbus has arrived.", "Cat acquired."],
   tempFilePrefix: "gumbus-pfp",

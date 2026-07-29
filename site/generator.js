@@ -9,7 +9,7 @@ const controls = {
   glasses: document.querySelector("#glasses-select"),
 };
 
-let keyedGumbis;
+let keyedGumbus;
 
 function buildKeyedImage() {
   const buffer = document.createElement("canvas");
@@ -29,7 +29,7 @@ function buildKeyedImage() {
     }
   }
   bufferContext.putImageData(pixels, 0, 0);
-  keyedGumbis = buffer;
+  keyedGumbus = buffer;
 }
 
 function drawPartyHat() {
@@ -154,7 +154,7 @@ function render() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = controls.background.value;
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.drawImage(controls.background.value === "#ffffff" ? source : keyedGumbis, 0, 0, canvas.width, canvas.height);
+  context.drawImage(controls.background.value === "#ffffff" ? source : keyedGumbus, 0, 0, canvas.width, canvas.height);
 
   if (controls.hat.value === "party") drawPartyHat();
   if (controls.hat.value === "crown") drawCrown();
@@ -178,7 +178,7 @@ function downloadPfp() {
   render();
   const link = document.createElement("a");
   link.href = canvas.toDataURL("image/png");
-  link.download = "gumbis-pfp.png";
+  link.download = "gumbus-pfp.png";
   link.click();
 }
 

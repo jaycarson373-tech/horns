@@ -204,23 +204,23 @@ h1 { font-size: clamp(5rem, 18vw, 16rem); }
   text-decoration: none;
 }
 
-.real-gumbis {
+.real-gumbus {
   padding: 90px 3.5vw 100px;
   border-bottom: 2px solid var(--ink);
   background: var(--yellow);
 }
-.real-gumbis-copy {
+.real-gumbus-copy {
   display: grid;
   grid-template-columns: 1fr 1.5fr 1fr;
   align-items: end;
   gap: 5vw;
   margin-bottom: 48px;
 }
-.real-gumbis-copy .kicker { align-self: start; }
-.real-gumbis-copy h2 {
+.real-gumbus-copy .kicker { align-self: start; }
+.real-gumbus-copy h2 {
   font-size: clamp(3rem, 7vw, 7rem);
 }
-.real-gumbis-copy > p:last-child {
+.real-gumbus-copy > p:last-child {
   max-width: 300px;
   font-size: 1.1rem;
   font-weight: 700;
@@ -420,6 +420,20 @@ h1 { font-size: clamp(5rem, 18vw, 16rem); }
   font-size: 1.1rem;
   line-height: 1.6;
 }
+.support-link {
+  display: inline-flex;
+  margin-top: 24px;
+  padding: 14px 18px;
+  border: 2px solid var(--paper);
+  color: var(--paper);
+  font-weight: 900;
+  text-decoration: none;
+  transition: background .2s ease, color .2s ease;
+}
+.support-link:hover {
+  color: var(--ink);
+  background: var(--paper);
+}
 
 .final-cta {
   display: grid;
@@ -474,9 +488,9 @@ footer > div a { font-size: .75rem; font-weight: 800; text-decoration: none; }
   .story-grid h2, .bot-grid h2, .final-cta h2 { font-size: clamp(2.7rem, 12vw, 5rem); }
   .bot-grid h2 { font-size: 10vw; }
   .studio-section { padding: 60px 16px; }
-  .real-gumbis { padding: 60px 16px; }
-  .real-gumbis-copy { grid-template-columns: 1fr; gap: 20px; }
-  .real-gumbis-copy h2 { font-size: clamp(2.8rem, 13vw, 5rem); }
+  .real-gumbus { padding: 60px 16px; }
+  .real-gumbus-copy { grid-template-columns: 1fr; gap: 20px; }
+  .real-gumbus-copy h2 { font-size: clamp(2.8rem, 13vw, 5rem); }
   .photo-strip {
     grid-template-columns: 1fr 1fr;
     align-items: stretch;

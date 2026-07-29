@@ -1,9 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": null,
-  "installCommand": null,
-  "outputDirectory": "site",
-  "framework": null,
-  "cleanUrls": true,
-  "trailingSlash": false
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "crons": [{ "path": "/api/donations", "schedule": "*/10 * * * *" }]
 }

@@ -1,78 +1,85 @@
 const svg = document.querySelector("#gumbus-svg");
-const bgSelect = document.querySelector("#bg-select");
-const furSelect = document.querySelector("#fur-select");
-const hatSelect = document.querySelector("#hat-select");
-const tieSelect = document.querySelector("#tie-select");
-const faceSelect = document.querySelector("#face-select");
-const downloadButton = document.querySelector("#download-button");
+const controls = {
+  bg: document.querySelector("#bg-select"),
+  fur: document.querySelector("#fur-select"),
+  hat: document.querySelector("#hat-select"),
+  tie: document.querySelector("#tie-select"),
+  face: document.querySelector("#face-select"),
+};
 
-const bg = document.querySelector("#svg-bg");
-const sparkles = document.querySelector("#sparkles");
-const furBody = document.querySelector("#fur-body");
-const ears = document.querySelectorAll(".ear-shape");
-const hatLayer = document.querySelector("#hat-layer");
-const hatTop = document.querySelector("#hat-top");
-const hatBrim = document.querySelector("#hat-brim");
-const tieLayer = document.querySelector("#tie-layer");
-const tieKnot = document.querySelector("#tie-knot");
-const tieBody = document.querySelector("#tie-body");
-const mouthSmile = document.querySelector("#mouth-smile");
-const mouthBlep = document.querySelector("#mouth-blep");
+const layers = {
+  bg: document.querySelector("#svg-bg"),
+  sparkles: document.querySelector("#sparkles"),
+  fur: document.querySelector("#fur-body"),
+  ears: document.querySelectorAll(".ear-shape"),
+  hat: document.querySelector("#hat-layer"),
+  hatTop: document.querySelector("#hat-top"),
+  hatBrim: document.querySelector("#hat-brim"),
+  tie: document.querySelector("#tie-layer"),
+  tieKnot: document.querySelector("#tie-knot"),
+  tieBody: document.querySelector("#tie-body"),
+  smile: document.querySelector("#mouth-smile"),
+  blep: document.querySelector("#mouth-blep"),
+};
 
-function setFill(nodes, color) {
+function fill(nodes, color) {
   nodes.forEach((node) => node.setAttribute("fill", color));
 }
 
 function updatePreview() {
-  const background = bgSelect.value;
-  if (background === "sparkle") {
-    bg.setAttribute("fill", "#ffffff");
-    sparkles.setAttribute("opacity", "1");
-  } else {
-    bg.setAttribute("fill", background);
-    sparkles.setAttribute("opacity", "0");
+  const sparkling = controls.bg.value === "sparkle";
+  layers.bg.setAttribute("fill", sparkling ? "#f7f1e6" : controls.bg.value);
+  layers.sparkles.setAttribute("opacity", sparkling ? "1" : "0");
+  layers.fur.setAttribute("fill", controls.fur.value);
+  fill(layers.ears, controls.fur.value);
+
+  const hasHat = controls.hat.value !== "none";
+  layers.hat.setAttribute("opacity", hasHat ? "1" : "0");
+  if (hasHat) {
+    layers.hatTop.setAttribute("fill", controls.hat.value);
+    layers.hatBrim.setAttribute("fill", controls.hat.value);
   }
 
-  furBody.setAttribute("fill", furSelect.value);
-  setFill(ears, furSelect.value);
-
-  const hat = hatSelect.value;
-  hatLayer.setAttribute("opacity", hat === "none" ? "0" : "1");
-  if (hat !== "none") {
-    hatTop.setAttribute("fill", hat);
-    hatBrim.setAttribute("fill", hat);
+  const hasTie = controls.tie.value !== "none";
+  layers.tie.setAttribute("opacity", hasTie ? "1" : "0");
+  if (hasTie) {
+    layers.tieKnot.setAttribute("fill", controls.tie.value);
+    layers.tieBody.setAttribute("fill", controls.tie.value);
   }
 
-  const tie = tieSelect.value;
-  tieLayer.setAttribute("opacity", tie === "none" ? "0" : "1");
-  if (tie !== "none") {
-    tieKnot.setAttribute("fill", tie);
-    tieBody.setAttribute("fill", tie);
-  }
+  const blep = controls.face.value === "blep";
+  layers.smile.setAttribute("opacity", blep ? "0" : "1");
+  layers.blep.setAttribute("opacity", blep ? "1" : "0");
+}
 
-  const isBlep = faceSelect.value === "blep";
-  mouthSmile.setAttribute("opacity", isBlep ? "0" : "1");
-  mouthBlep.setAttribute("opacity", isBlep ? "1" : "0");
+function randomize() {
+  Object.values(controls).forEach((control) => {
+    control.selectedIndex = Math.floor(Math.random() * control.options.length);
+  });
+  updatePreview();
 }
 
 function downloadPfp() {
   updatePreview();
-
   const source = new XMLSerializer().serializeToString(svg);
-  const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "gumbus-pfp.svg";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  const image = new Image();
+  image.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1000;
+    canvas.height = 1000;
+    canvas.getContext("2d").drawImage(image, 0, 0);
+    canvas.toBlob((blob) => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "gumbus-pfp.png";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }, "image/png");
+  };
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
 }
 
-[bgSelect, furSelect, hatSelect, tieSelect, faceSelect].forEach((control) => {
-  control.addEventListener("change", updatePreview);
-});
-
-downloadButton.addEventListener("click", downloadPfp);
+Object.values(controls).forEach((control) => control.addEventListener("change", updatePreview));
+document.querySelector("#random-button").addEventListener("click", randomize);
+document.querySelector("#download-button").addEventListener("click", downloadPfp);
 updatePreview();

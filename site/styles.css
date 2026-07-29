@@ -41,15 +41,12 @@ img { display: block; max-width: 100%; }
   font: 1.15rem "Archivo Black", sans-serif;
   text-decoration: none;
 }
-.brand-eye {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   border: 2px solid var(--ink);
-  border-radius: 50%;
-  color: var(--pink);
-  font-size: .72rem;
+  object-fit: cover;
 }
 nav { display: flex; gap: 34px; }
 nav a, .nav-cta {

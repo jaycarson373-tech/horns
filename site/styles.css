@@ -84,6 +84,10 @@ nav a, .tiktok-link {
   gap: 7px;
   padding: 0 12px;
   border: 2px solid var(--ink);
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
   font-size: .68rem;
   font-weight: 800;
 }

@@ -192,3 +192,17 @@ function initialize() {
 
 if (source.complete) initialize();
 else source.addEventListener("load", initialize, { once: true });
+
+const copyCaButton = document.querySelector("#copy-ca");
+copyCaButton?.addEventListener("click", async () => {
+  const label = copyCaButton.querySelector("span");
+  try {
+    await navigator.clipboard.writeText(copyCaButton.dataset.ca);
+    label.textContent = "COPIED";
+    window.setTimeout(() => {
+      label.textContent = "BMmv...pump";
+    }, 1600);
+  } catch {
+    label.textContent = "COPY FAILED";
+  }
+});

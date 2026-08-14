@@ -1,149 +1,109 @@
-# GumbusPfpBot
+# PumpXBT
 
-GumbusPfpBot is an opt-in X reply bot. It only polls direct mentions of the bot account, downloads the mentioning user's public profile picture, AI-edits it into a custom Gumbus / michi-style meme cat PFP, and replies to that exact mention with `Gumbified.` plus the edited image.
+PumpXBT is a read-only Pump token intelligence terminal plus an opt-in X mention agent. It ranks cached Solana Pump markets, records public wallet-cluster movement, exposes manually reviewed signals, verifies a 500,000-token premium gate, and shows only verifiable treasury receipts.
 
-The transformation turns the subject into a cute weird internet cat avatar while preserving recognizable colors, accessories, vibe, pose, background, crop, and composition where possible. It does not do keyword search and it does not process random public posts.
+It does not hold wallets, sign transactions, execute trades, or invent market calls. A qualifying model result becomes a private `signal_candidates` row. It reaches the public site or X only after an operator explicitly publishes a `pump_signals` row.
 
-## Setup
+## Architecture
 
-1. Install dependencies:
+- Next.js site and API routes on Vercel.
+- Railway worker polls direct X mentions every 60 seconds.
+- Supabase stores terminal snapshots, signal workflow, wallet events, access challenges, treasury receipts, and processed mention IDs.
+- DexScreener supplies public market pairs and metrics.
+- Helius supplies public transaction parsing and token-balance checks.
+- The wallet gate signs a plain message. It never creates a transaction or requests token approval.
 
-   ```bash
-   npm install
-   ```
+## Database
 
-2. Create or migrate the Supabase table by running [supabase/processed_mentions.sql](./supabase/processed_mentions.sql). The table is shared-safe through `bot_project`, so future bots can reuse it without mention ID collisions.
+Run both SQL files in the Supabase SQL editor:
 
-3. Copy `.env.example` to `.env` and fill in real credentials.
+1. [`supabase/processed_mentions.sql`](./supabase/processed_mentions.sql)
+2. [`supabase/pumpxbt.sql`](./supabase/pumpxbt.sql)
 
-   X's current v2 media upload and post creation docs use an OAuth2 user access token. Set `X_OAUTH2_USER_TOKEN` only if you have a real user-context token with write/media scopes. If it is absent, the bot falls back to OAuth1 credentials.
+RLS is enabled and no anonymous policies are created. The app uses the service role only from server-side code.
 
-4. Run a safe dry run locally:
-
-   ```bash
-   npm run poll:once
-   ```
-
-5. Set `DRY_RUN=false` only after dry-run logs look correct.
-
-## Railway Deployment
-
-Railway is the recommended host because this bot runs as a long-lived worker. [railway.json](./railway.json) starts the container with:
+## Local Setup
 
 ```bash
-npm run poll
+npm install
+cp .env.example .env
+npm run typecheck
+npm run dev
 ```
 
-Deploy from GitHub:
+Run one market refresh:
 
-1. Push this repo to GitHub.
-2. In Railway, create a new project and choose "Deploy from GitHub repo".
-3. Select the repo.
-4. Open the service's Variables tab.
-5. Paste values from `.env.example`, filled with real credentials.
-6. Keep `DRY_RUN=true` for the first deploy.
-7. Watch deploy logs.
-8. After a successful dry run, change `DRY_RUN=false` and redeploy.
-
-Required bot vars:
-
-```env
-BOT_USERNAME=GumbusPfpBot
-BOT_USER_ID=
-BOT_PROJECT_KEY=gumbus-pfp-bot
-DRY_RUN=true
+```bash
+npm run ingest:market
 ```
 
-Use the real handle for the new account. If the account is `@SomeNewBot`, set:
+Run one safe mention poll:
 
-```env
-BOT_USERNAME=SomeNewBot
-BOT_PROJECT_KEY=some-new-bot
+```bash
+npm run poll:once
 ```
 
-## Get Bot User ID
+Keep `DRY_RUN=true` until the reply text and fetched mention IDs are correct.
 
-Run this after the new X account exists:
+## X Agent
+
+The worker reads the bot account's mentions timeline and recent direct-mention search, rejects posts without the visible `@BOT_USERNAME`, skips the bot itself and protected accounts, rate limits replies, and stores every mention under `BOT_PROJECT_KEY`.
+
+Users should mention the bot with one Solana mint or one unambiguous cashtag:
+
+```text
+@PumpXBT 9abc...pump
+@PumpXBT $TOKEN
+```
+
+If the token is unknown, the worker queues the mint for ingestion and explicitly makes no call. A normal snapshot includes only cached liquidity, volume, flow, momentum, score, and whether a reviewed high-conviction signal is active.
+
+X app permissions must be **Read and write**. Generate OAuth 1.0a Access Token and Secret after setting those permissions. The app API key/secret and account access token/secret are different values.
+
+Get the bot ID:
 
 ```bash
 curl -s "https://api.x.com/2/users/by/username/YOUR_BOT_USERNAME" \
   -H "Authorization: Bearer YOUR_X_BEARER_TOKEN"
 ```
 
-Copy the returned `data.id` into Railway as `BOT_USER_ID`.
+## Market and Signal Workflow
 
-## Test A Mention
+`/api/cron/market` runs every ten minutes. It discovers Solana addresses ending in the configured Pump suffix, refreshes their strongest-liquidity pair, calculates a deterministic screening score, and inserts candidates only when all configured thresholds pass.
 
-From a different public X account, post a brand-new public post with the handle visibly in the text:
+The current implementation never auto-promotes candidates. Review source liquidity, token concentration, contract behavior, and invalidation before creating an active `pump_signals` row. The public UI never displays drafts or unpublished rows.
 
-```text
-@YOUR_BOT_USERNAME make my pfp
-```
+Tracked addresses are operator-curated rows in `tracked_wallets`. Their activity is labeled public wallet-cluster movement, not insider activity. Add only addresses with a documented public rationale.
 
-Do not just reply without typing the handle. The bot reads the X mentions endpoint, so the post must contain the visible `@YOUR_BOT_USERNAME`.
+Treasury claims are separate from policy. Insert a `treasury_events` row only after its signature, event type, amount, and block time are independently verifiable. Without a row, the site displays no receipt or performance number.
 
-Success logs look like:
+## Token Gate
 
-```text
-event: gumbus-pfp-bot.mention.replied
-event: gumbus-pfp-bot.poll.complete ... replied: 1 failed: 0
-```
-
-For launch/backlog processing, set:
+Set the same mint in both variables:
 
 ```env
-MAX_MENTIONS_PER_POLL=100
+PUMPXBT_TOKEN_MINT=REAL_MINT
+NEXT_PUBLIC_PUMPXBT_TOKEN_MINT=REAL_MINT
 ```
 
-## Local Running
+`PUMPXBT_TOKEN_MINT` is authoritative server-side. The public copy is display-only. The server verifies the signed challenge with the wallet's Ed25519 public key, checks SPL token accounts through Helius, then issues a short-lived HttpOnly cookie.
 
-Long-running worker:
+## Deployment
 
-```bash
-npm run poll
-```
+### Vercel
 
-Single poll:
+Import the repository and set the site, Supabase, Helius, mint, session, and cron variables from `.env.example`. Vercel invokes `/api/cron/market` every ten minutes. Use a random `CRON_SECRET` and a random `SESSION_SECRET` of at least 32 characters.
 
-```bash
-npm run poll:once
-```
+### Railway
 
-## Safety Defaults
+Create a separate service from the same repository. [`railway.json`](./railway.json) runs `npm run poll`. Add Supabase, bot identity, rate-limit, and X variables. Start with `DRY_RUN=true`, inspect one newly created mention, then deliberately switch it to `false` and redeploy.
 
-- `DRY_RUN=true` by default; the bot logs actions without posting.
-- No keyword search is used. The bot only calls the bot user's mentions timeline.
-- Mentions are stored in Supabase and are not processed twice once they succeed.
-- Failed mentions can retry after a deployment or auth fix.
-- `MAX_GLOBAL_REPLIES_PER_HOUR` defaults to `20`.
-- One reply per author per hour is enforced.
-- Protected/unavailable profiles are skipped.
-- OpenAI moderation runs when `OPENAI_API_KEY` is present and `MODERATION_ENABLED=true`.
-- `REQUIRE_IMAGE_MODERATION=true` makes missing moderation fail closed.
-- Public replies set X's `made_with_ai` flag because the attached media is AI-edited.
+Do not put a Solana private key, seed phrase, trading key, or treasury signing key in either deployment. PumpXBT is read-only.
 
-## Image Providers
+## Required Variables
 
-`IMAGE_PROVIDER=auto` prefers OpenAI when `OPENAI_API_KEY` is set, then Replicate when `REPLICATE_API_TOKEN` and `REPLICATE_MODEL` are set.
+Site/API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HELIUS_API_KEY`, `PUMPXBT_TOKEN_MINT`, `NEXT_PUBLIC_PUMPXBT_TOKEN_MINT`, `SESSION_SECRET`, `CRON_SECRET`.
 
-Replicate models have different input schemas, so set `REPLICATE_MODEL`, `REPLICATE_PROMPT_FIELD`, and `REPLICATE_IMAGE_FIELD` for the model you choose.
+Worker: site Supabase variables plus `BOT_MODE`, `BOT_USERNAME`, `BOT_USER_ID`, `BOT_PROJECT_KEY`, `DRY_RUN`, `X_BEARER_TOKEN`, `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`.
 
-`SHARP_FALLBACK_ENABLED=true` makes failed image edits use a simple local Sharp michi-cat overlay. Keep it off if every public reply must be AI-edited.
-
-## Website
-
-A lightweight static launch site lives in [site/index.html](./site/index.html). It includes the Gumbus TikTok link, the bot concept, and the fee note.
-
-## Configuration
-
-Bot-specific branding lives in [lib/botConfig.ts](./lib/botConfig.ts):
-
-- `botName`
-- `defaultBotUsername`
-- `transformationName`
-- `imagePrompt`
-- `templateImagePath` for transformations that need a second reference image
-- `replyText`
-- `replyTextFallbacks`
-
-Future transformation bots should change that file first instead of rewriting queue, X, or Supabase logic.
+Optional: `NEXT_PUBLIC_BOT_HANDLE`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BUY_URL`, `X_OAUTH2_USER_TOKEN`, and all threshold/rate-limit tuning variables shown in `.env.example`.

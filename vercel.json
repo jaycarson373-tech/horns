@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "outputDirectory": ".next",
-  "crons": [{ "path": "/api/donations", "schedule": "*/10 * * * *" }]
+  "crons": [{ "path": "/api/cron/market", "schedule": "*/10 * * * *" }]
 }

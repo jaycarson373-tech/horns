@@ -1,8 +1,10 @@
 import { botConfig } from "./botConfig";
 
 export type ImageProvider = "auto" | "openai" | "replicate" | "sharp";
+export type BotMode = "agent" | "image";
 
 export type AppConfig = {
+  botMode: BotMode;
   botUsername: string;
   botUserId: string;
   botProjectKey: string;
@@ -11,6 +13,7 @@ export type AppConfig = {
   dryRunGenerateImage: boolean;
   imageProvider: ImageProvider;
   maxGlobalRepliesPerHour: number;
+  maxUserRepliesPerHour: number;
   maxMentionAgeMinutes: number;
   maxMentionsPerPoll: number;
   maxProfileImageBytes: number;
@@ -103,6 +106,15 @@ function readImageProvider(): ImageProvider {
   throw new Error("IMAGE_PROVIDER must be one of: auto, openai, replicate, sharp");
 }
 
+function readBotMode(): BotMode {
+  const mode = env("BOT_MODE") ?? "agent";
+  if (mode === "agent" || mode === "image") {
+    return mode;
+  }
+
+  throw new Error("BOT_MODE must be one of: agent, image");
+}
+
 function stripLeadingAt(username: string) {
   return username.replace(/^@+/, "").toLowerCase();
 }
@@ -114,12 +126,13 @@ function defaultBotProjectKey() {
 export function getConfig(): AppConfig {
   const dryRun = readBoolean("DRY_RUN", true);
   const dryRunGenerateImage = readBoolean("DRY_RUN_GENERATE_IMAGE", false);
+  const botMode = readBotMode();
   const imageProvider = readImageProvider();
   const openaiApiKey = env("OPENAI_API_KEY");
   const replicateApiToken = env("REPLICATE_API_TOKEN");
   const replicateModel = env("REPLICATE_MODEL");
   const sharpFallbackEnabled = readBoolean("SHARP_FALLBACK_ENABLED", false);
-  const needsImageProvider = !dryRun || dryRunGenerateImage;
+  const needsImageProvider = botMode === "image" && (!dryRun || dryRunGenerateImage);
 
   if (needsImageProvider) {
     if (imageProvider === "openai" && !openaiApiKey) {
@@ -143,6 +156,7 @@ export function getConfig(): AppConfig {
   }
 
   return {
+    botMode,
     botUsername: stripLeadingAt(env("BOT_USERNAME") ?? botConfig.defaultBotUsername),
     botUserId: required("BOT_USER_ID"),
     botProjectKey: env("BOT_PROJECT_KEY") ?? defaultBotProjectKey(),
@@ -151,6 +165,7 @@ export function getConfig(): AppConfig {
     dryRunGenerateImage,
     imageProvider,
     maxGlobalRepliesPerHour: readInteger("MAX_GLOBAL_REPLIES_PER_HOUR", 20, { min: 0 }),
+    maxUserRepliesPerHour: readInteger("MAX_USER_REPLIES_PER_HOUR", 1, { min: 0 }),
     maxMentionAgeMinutes: readInteger("MAX_MENTION_AGE_MINUTES", 1440, { min: 0 }),
     maxMentionsPerPoll: readInteger("MAX_MENTIONS_PER_POLL", 100, { min: 5, max: 100 }),
     maxProfileImageBytes: readInteger("MAX_PROFILE_IMAGE_BYTES", 10_000_000, { min: 100_000 }),

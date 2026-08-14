@@ -1,20 +1,15 @@
-import { createProcessedMention, updateProcessedMention } from "./supabase";
+import { buildPumpXbtReply } from "./pumpxbtAgent";
 import { getConfig } from "./config";
 import {
-  cleanupTransformationImage,
-  createTransformationImage,
-  safeErrorMessage,
-  UnsafeImageError,
-  UnavailableImageError,
-  type TransformationImageResult
-} from "./imageEdit";
+  countRecentReplies,
+  createProcessedMention,
+  updateProcessedMention
+} from "./supabase";
 import {
   fetchRecentMentions,
   fetchUserById,
   isDirectMention,
-  replyToMentionWithImage,
-  toHighestQualityProfileImageUrl,
-  uploadImageForTweet,
+  replyToMentionWithText,
   type XAuthor,
   type XMention
 } from "./x";
@@ -45,209 +40,122 @@ function logEvent(event: string, payload: Record<string, unknown>) {
 }
 
 function eventName(name: string) {
-  const projectKey = getConfig().botProjectKey;
-  return `${projectKey}.${name}`;
+  return `${getConfig().botProjectKey}.${name}`;
+}
+
+function safeErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function isOlderThanLimit(createdAt: string | undefined, maxAgeMinutes: number) {
-  if (!createdAt || maxAgeMinutes === 0) {
-    return false;
-  }
-
+  if (!createdAt || maxAgeMinutes === 0) return false;
   const created = Date.parse(createdAt);
-  if (!Number.isFinite(created)) {
-    return false;
-  }
-
-  return Date.now() - created > maxAgeMinutes * 60 * 1000;
+  return Number.isFinite(created) && Date.now() - created > maxAgeMinutes * 60_000;
 }
 
 function isRetryableExistingRecord(status: string, error?: string | null) {
   return status === "failed" || (status === "skipped" && error?.endsWith("_rate_limited"));
 }
 
-async function markSkipped(mention: XMention, reason: string, author?: XAuthor, profileImageUrl?: string): Promise<MentionProcessOutcome> {
+async function markSkipped(
+  mention: XMention,
+  reason: string,
+  author?: XAuthor
+): Promise<MentionProcessOutcome> {
   await updateProcessedMention(mention.id, {
     status: "skipped",
     error: reason,
-    authorUsername: author?.username ?? null,
-    profileImageUrl: profileImageUrl ?? author?.profile_image_url ?? null
+    authorUsername: author?.username ?? null
   });
-
   logEvent(eventName("mention.skipped"), {
     mentionId: mention.id,
     authorId: mention.author_id,
     reason
   });
-
-  return {
-    mentionId: mention.id,
-    status: "skipped",
-    reason
-  };
-}
-
-async function getAuthor(mention: XMention) {
-  if (mention.author) {
-    return mention.author;
-  }
-
-  return fetchUserById(mention.author_id);
-}
-
-async function processDryRun(mention: XMention, author: XAuthor, profileImageUrl: string) {
-  const config = getConfig();
-  let transformationImage: TransformationImageResult | undefined;
-
-  try {
-    if (config.dryRunGenerateImage) {
-      transformationImage = await createTransformationImage(profileImageUrl, mention.id);
-    }
-
-    await updateProcessedMention(mention.id, {
-      status: "dry_run",
-      error: null,
-      authorUsername: author.username ?? null,
-      profileImageUrl
-    });
-
-    logEvent(eventName("mention.dry_run"), {
-      mentionId: mention.id,
-      authorId: mention.author_id,
-      authorUsername: author.username,
-      imageGenerated: Boolean(transformationImage),
-      provider: transformationImage?.provider
-    });
-
-    return {
-      mentionId: mention.id,
-      status: "dry_run" as const
-    };
-  } finally {
-    await cleanupTransformationImage(transformationImage);
-  }
+  return { mentionId: mention.id, status: "skipped", reason };
 }
 
 async function processMention(mention: XMention): Promise<MentionProcessOutcome> {
   const config = getConfig();
-  const initialProfileImageUrl = mention.author?.profile_image_url
-    ? toHighestQualityProfileImageUrl(mention.author.profile_image_url)
-    : undefined;
-
   const created = await createProcessedMention({
     mentionId: mention.id,
     authorId: mention.author_id,
     authorUsername: mention.author?.username,
-    profileImageUrl: initialProfileImageUrl,
     status: "queued"
   });
 
   if (!created.created && !isRetryableExistingRecord(created.record?.status ?? "", created.record?.error)) {
-    return {
-      mentionId: mention.id,
-      status: "duplicate",
-      reason: "already_processed"
-    };
+    return { mentionId: mention.id, status: "duplicate", reason: "already_processed" };
   }
 
-  if (!created.created) {
-    logEvent(eventName("mention.retrying_existing"), {
-      mentionId: mention.id,
-      authorId: mention.author_id,
-      previousStatus: created.record?.status,
-      previousError: created.record?.error
-    });
-  }
-
-  await updateProcessedMention(mention.id, { status: "processing" });
+  await updateProcessedMention(mention.id, { status: "processing", error: null });
 
   try {
     if (!isDirectMention(mention.text, config.botUsername)) {
-      return markSkipped(mention, "not_a_direct_mention", mention.author, initialProfileImageUrl);
+      return markSkipped(mention, "not_a_direct_mention", mention.author);
     }
-
     if (mention.author_id === config.botUserId) {
-      return markSkipped(mention, "self_mention", mention.author, initialProfileImageUrl);
+      return markSkipped(mention, "self_mention", mention.author);
     }
-
     if (isOlderThanLimit(mention.created_at, config.maxMentionAgeMinutes)) {
-      return markSkipped(mention, "mention_too_old", mention.author, initialProfileImageUrl);
+      return markSkipped(mention, "mention_too_old", mention.author);
     }
 
-    const author = await getAuthor(mention);
-    if (!author) {
-      return markSkipped(mention, "author_unavailable", mention.author, initialProfileImageUrl);
+    const author = mention.author ?? await fetchUserById(mention.author_id);
+    if (!author) return markSkipped(mention, "author_unavailable", mention.author);
+    if (author.protected) return markSkipped(mention, "protected_profile", author);
+
+    await updateProcessedMention(mention.id, { authorUsername: author.username ?? null });
+
+    const since = new Date(Date.now() - 3_600_000).toISOString();
+    if (config.maxGlobalRepliesPerHour > 0) {
+      const globalReplies = await countRecentReplies(since);
+      if (globalReplies >= config.maxGlobalRepliesPerHour) {
+        return markSkipped(mention, "global_rate_limited", author);
+      }
+    }
+    if (config.maxUserRepliesPerHour > 0) {
+      const authorReplies = await countRecentReplies(since, mention.author_id);
+      if (authorReplies >= config.maxUserRepliesPerHour) {
+        return markSkipped(mention, "user_rate_limited", author);
+      }
     }
 
-    if (author.protected) {
-      return markSkipped(mention, "protected_profile", author, initialProfileImageUrl);
-    }
-
-    if (!author.profile_image_url) {
-      return markSkipped(mention, "profile_image_unavailable", author, initialProfileImageUrl);
-    }
-
-    const profileImageUrl = toHighestQualityProfileImageUrl(author.profile_image_url);
-    await updateProcessedMention(mention.id, {
-      authorUsername: author.username ?? null,
-      profileImageUrl
-    });
-
+    const replyText = await buildPumpXbtReply(mention.text);
     if (config.dryRun) {
-      return processDryRun(mention, author, profileImageUrl);
-    }
-
-    let transformationImage: TransformationImageResult | undefined;
-    try {
-      transformationImage = await createTransformationImage(profileImageUrl, mention.id);
-      const mediaId = await uploadImageForTweet(transformationImage.filePath);
-      const replyId = await replyToMentionWithImage(mention.id, mediaId);
-
-      await updateProcessedMention(mention.id, {
-        status: "replied",
-        error: null,
-        replyId,
-        authorUsername: author.username ?? null,
-        profileImageUrl
-      });
-
-      logEvent(eventName("mention.replied"), {
+      await updateProcessedMention(mention.id, { status: "dry_run", error: null });
+      logEvent(eventName("mention.dry_run"), {
         mentionId: mention.id,
         authorId: mention.author_id,
         authorUsername: author.username,
-        provider: transformationImage.provider,
-        replyId
+        replyText
       });
-
-      return {
-        mentionId: mention.id,
-        status: "replied",
-        replyId
-      };
-    } finally {
-      await cleanupTransformationImage(transformationImage);
+      return { mentionId: mention.id, status: "dry_run" };
     }
-  } catch (error) {
-    const message = safeErrorMessage(error);
-    const skipped = error instanceof UnsafeImageError || error instanceof UnavailableImageError;
 
+    const replyId = await replyToMentionWithText(mention.id, replyText);
     await updateProcessedMention(mention.id, {
-      status: skipped ? "skipped" : "failed",
-      error: message
+      status: "replied",
+      error: null,
+      replyId,
+      authorUsername: author.username ?? null
     });
-
+    logEvent(eventName("mention.replied"), {
+      mentionId: mention.id,
+      authorId: mention.author_id,
+      authorUsername: author.username,
+      replyId
+    });
+    return { mentionId: mention.id, status: "replied", replyId };
+  } catch (error) {
+    const reason = safeErrorMessage(error);
+    await updateProcessedMention(mention.id, { status: "failed", error: reason });
     console.error(eventName("mention.failed"), {
       mentionId: mention.id,
       authorId: mention.author_id,
-      skipped,
       error
     });
-
-    return {
-      mentionId: mention.id,
-      status: skipped ? "skipped" : "failed",
-      reason: message
-    };
+    return { mentionId: mention.id, status: "failed", reason };
   }
 }
 

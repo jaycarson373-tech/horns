@@ -40,8 +40,13 @@ let supabaseClient: SupabaseClient | undefined;
 
 export function getSupabase() {
   if (!supabaseClient) {
-    const config = getConfig();
-    supabaseClient = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+    const supabaseUrl = process.env.SUPABASE_URL?.trim();
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required");
+    }
+
+    supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false
@@ -123,7 +128,7 @@ export async function countRecentReplies(sinceIso: string, authorId?: string) {
     .from(TABLE)
     .select("id", { count: "exact", head: true })
     .eq("bot_project", config.botProjectKey)
-    .gte("created_at", sinceIso)
+    .gte("updated_at", sinceIso)
     .in("status", ["replied", "dry_run"]);
 
   if (authorId) {

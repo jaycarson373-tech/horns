@@ -238,14 +238,19 @@ export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
   const config = getConfig();
   const maxMentions = limit ?? config.maxMentionsPerPoll;
   const maxResults = String(maxMentions);
-  const response = await xApiGet<XTweetResponse>(`/users/${config.botUserId}/mentions`, {
-    max_results: maxResults,
-    expansions: "author_id",
-    "tweet.fields": "author_id,created_at",
-    "user.fields": "id,name,username,profile_image_url,protected"
-  });
+  let mentions: XMention[] = [];
+  try {
+    const response = await xApiGet<XTweetResponse>(`/users/${config.botUserId}/mentions`, {
+      max_results: maxResults,
+      expansions: "author_id",
+      "tweet.fields": "author_id,created_at",
+      "user.fields": "id,name,username,profile_image_url,protected"
+    });
+    mentions = tweetsToMentions(response);
+  } catch (error) {
+    console.warn("x.mentions.timeline_failed", summarizeXApiError(error));
+  }
 
-  const mentions = tweetsToMentions(response);
   const searchMentions = await fetchRecentDirectMentionSearch(limit);
   const mentionsById = new Map<string, XMention>();
 
@@ -459,5 +464,42 @@ export async function replyToMentionWithImage(mentionId: string, mediaId: string
     }
 
     throw new NonRetryableError(`X rejected all ${botConfig.botName} reply text variants`);
+  });
+}
+
+export async function replyToMentionWithText(mentionId: string, text: string) {
+  const config = getConfig();
+  const replyText = text.trim();
+  if (!replyText) {
+    throw new NonRetryableError("X reply text cannot be empty");
+  }
+
+  if (replyText.length > 280) {
+    throw new NonRetryableError(`X reply text is ${replyText.length} characters; maximum is 280`);
+  }
+
+  const payload = {
+    text: replyText,
+    reply: {
+      in_reply_to_tweet_id: mentionId
+    }
+  };
+
+  if (config.xOAuth2UserToken) {
+    const response = await xOAuth2PostJson<XCreateTweetResponse>("/tweets", payload);
+    const replyId = response.data?.id;
+    if (!replyId) {
+      throw new NonRetryableError("X create tweet response did not include a reply id");
+    }
+    return replyId;
+  }
+
+  return withRetry("x.reply.text", async () => {
+    const response = await getWriteClient().v2.tweet(payload);
+    const replyId = response.data?.id;
+    if (!replyId) {
+      throw new NonRetryableError("X create tweet response did not include a reply id");
+    }
+    return replyId;
   });
 }

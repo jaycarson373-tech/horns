@@ -1,6 +1,6 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-  outputFileTracingIncludes: { "/": ["./site/index.html"] }
+  agentRules: false
 };
 
 export default nextConfig;

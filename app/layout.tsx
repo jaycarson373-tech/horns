@@ -1,25 +1,39 @@
 import type { Metadata, Viewport } from "next";
+
 import "./site.css";
 
-const title = "Gumbus — The Internet's Cat";
-const description = "Meet Gumbus and make a custom PFP. 100% of fees go to the creator.";
+const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
+  || process.env.VERCEL_URL?.trim();
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+  || (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
+const botHandle = process.env.NEXT_PUBLIC_BOT_HANDLE?.trim().replace(/^@+/, "");
+const title = "PumpXBT | Pump Token Intelligence";
+const description = "Verified pump-token market structure, public wallet-cluster flow, and manually approved high-conviction signals.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.gumbus.fun"),
+  metadataBase: new URL(siteUrl),
   title,
   description,
   alternates: { canonical: "/" },
-  icons: { icon: "/gumbus-logo.png", apple: "/apple-touch-icon.png" },
+  icons: { icon: "/favicon.png", apple: "/apple-touch-icon.png" },
   openGraph: {
-    title, description, url: "https://www.gumbus.fun", type: "website", siteName: "Gumbus",
-    images: [{ url: "/og-card.jpg", width: 1200, height: 630, alt: "Gumbus staring into the camera" }]
+    title,
+    description,
+    url: siteUrl,
+    type: "website",
+    siteName: "PumpXBT",
+    images: [{ url: "/pumpxbt-og.jpg", width: 1200, height: 630, alt: "PumpXBT pump-token intelligence terminal" }]
   },
   twitter: {
-    card: "summary_large_image", site: "@Gumbus_solana", title, description, images: ["/og-card.jpg"]
+    card: "summary_large_image",
+    site: botHandle ? `@${botHandle}` : undefined,
+    title,
+    description,
+    images: ["/pumpxbt-og.jpg"]
   }
 };
 
-export const viewport: Viewport = { themeColor: "#f7f1e6", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#080b09", colorScheme: "dark" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en"><body>{children}</body></html>;

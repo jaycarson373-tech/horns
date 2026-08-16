@@ -109,6 +109,8 @@ export default async function Home() {
             <div className="asof"><span>LAST INDEX</span><strong>{relativeTime(data.updatedAt)}</strong>{dataStale ? <em>DELAYED</em> : null}</div>
           </section>
 
+          <p className="hero-intro">Track verified Pump.fun calls, cluster flow, and on-chain treasury outcomes in one live terminal.</p>
+
           {tokenMint && buyUrl ? <TokenActions mint={tokenMint} buyUrl={buyUrl} /> : null}
 
           <section className="stat-strip" aria-label="Terminal statistics">

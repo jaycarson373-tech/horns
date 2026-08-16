@@ -91,6 +91,7 @@ export default async function Home() {
         </a>
         <div className="header-feed"><span className={`status-dot ${data.connected ? "live" : ""}`} />{data.connected ? "DATA LINK ACTIVE" : "DATA LINK OFFLINE"}<i />PUMP TOKENS ONLY</div>
         <div className="header-actions">
+          <a href="/docs">DOCS</a>
           {botHandle ? <a href={`https://x.com/${botHandle}`} target="_blank" rel="noreferrer">@{botHandle}</a> : null}
           <a href="#access" className="unlock-link">{premium ? "PRO ACTIVE" : "UNLOCK PRO"}</a>
         </div>
@@ -152,9 +153,9 @@ export default async function Home() {
           <section className="terminal-panel policy-panel" id="policy" aria-labelledby="policy-title">
             <div className="panel-heading"><div><span>04 / TREASURY MANDATE</span><h2 id="policy-title">FEES → PLAYS.<br />PROFITS → BURN.</h2></div><p>READ-ONLY BUILD</p></div>
             <div className="policy-grid">
-              <article><span>01</span><h3>100% FEE ALLOCATION</h3><p>Mandate: platform fees fund approved early-position research and trades. No position is opened by this application.</p></article>
-              <article><span>02</span><h3>HIGH CONVICTION ONLY</h3><p>Calls require a published thesis, invalidation level, confidence score, and named manual approval.</p></article>
-              <article><span>03</span><h3>BUYBACK + BURN</h3><p>Mandate: realized trading profits go to transparent token buybacks and burns after execution custody is established.</p></article>
+              <article><span>01</span><h3>100% CALLOUT PROFIT</h3><p>Every realized callout profit is used for transparent buybacks and burns only.</p></article>
+              <article><span>02</span><h3>CALLOUT SOURCE</h3><p>Signals are based on Pump.fun callouts from verified callers with demonstrated high win-rate and public consistency.</p></article>
+              <article><span>03</span><h3>AI RANKING GATE</h3><p>An AI ranker scores verified callers for freshness, signal quality, execution history, and risk alignment before any public action is considered.</p></article>
             </div>
             <div className="receipt-ledger">
               <h3>VERIFIED TREASURY LEDGER</h3>

@@ -237,3 +237,83 @@ td a small { max-width: 150px; overflow: hidden; color: var(--muted); font-size:
 }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+.docs-shell {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.docs-hero {
+  margin: 10px 0 20px;
+  border: 1px solid var(--line-strong);
+  padding: 28px;
+  background: var(--panel);
+}
+
+.docs-breadcrumb {
+  margin: 0 0 14px;
+  color: var(--green);
+  font: 700 .62rem var(--mono);
+}
+
+.docs-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.docs-hero p {
+  margin: 18px 0 0;
+  max-width: 75ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.docs-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.docs-panel {
+  border: 1px solid var(--line-strong);
+  padding: 22px;
+  background: var(--panel);
+}
+
+.docs-panel h2 {
+  margin: 0 0 12px;
+  font-size: .95rem;
+  letter-spacing: .02em;
+  color: var(--green);
+}
+
+.docs-panel p,
+.docs-panel li {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.7;
+}
+
+.docs-panel p {
+  margin: 0 0 14px;
+}
+
+.docs-panel ol,
+.docs-panel ul {
+  margin: 0 0 0 18px;
+  padding: 0;
+}
+
+.docs-panel a {
+  color: var(--green);
+  font: 700 .65rem var(--mono);
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .docs-grid {
+    grid-template-columns: 1fr;
+  }
+}

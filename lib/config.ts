@@ -55,6 +55,7 @@ export type AppConfig = {
   xAutoPostMinIntervalMinutes: number;
   xAutoPostMaxEventAgeMinutes: number;
   autoTradeEnabled: boolean;
+  autoTradeUnavailableReason?: "missing_private_key" | "missing_rpc";
   autoTradeBalancePercent: number;
   autoTradeMinSolAmount: number;
   autoTradeWalletReserveSol: number;
@@ -227,12 +228,13 @@ export function getConfig(): AppConfig {
   const heliusApiKey = env("HELIUS_API_KEY");
   const autoTradeRpcUrl = configuredAutoTradeRpcUrl
     ?? (heliusApiKey ? `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(heliusApiKey)}` : "");
-  if (autoTradeEnabled && !dryRun && !autoTradePrivateKey) {
-    throw new Error("AUTO_TRADE_PRIVATE_KEY (or TRADER_SECRET_KEY) is required when AUTO_TRADE_ENABLED=true and DRY_RUN=false");
-  }
-  if (autoTradeEnabled && !dryRun && !autoTradeRpcUrl) {
-    throw new Error("AUTO_TRADE_RPC_URL or HELIUS_API_KEY is required when AUTO_TRADE_ENABLED=true and DRY_RUN=false");
-  }
+  const autoTradeUnavailableReason = autoTradeEnabled && !dryRun
+    ? !autoTradePrivateKey
+      ? "missing_private_key" as const
+      : !autoTradeRpcUrl
+        ? "missing_rpc" as const
+        : undefined
+    : undefined;
   return {
     botMode,
     llmProvider,
@@ -284,6 +286,7 @@ export function getConfig(): AppConfig {
     xAutoPostMinIntervalMinutes: readInteger("X_AUTO_POST_MIN_INTERVAL_MINUTES", 15, { min: 1 }),
     xAutoPostMaxEventAgeMinutes: readInteger("X_AUTO_POST_MAX_EVENT_AGE_MINUTES", 1440, { min: 1 }),
     autoTradeEnabled,
+    autoTradeUnavailableReason,
     autoTradeBalancePercent: readNumber("AUTO_TRADE_BALANCE_PERCENT", 1, { min: 0.01, max: 100 }),
     autoTradeMinSolAmount: readNumber("AUTO_TRADE_MIN_SOL_AMOUNT", readNumber("AUTO_TRADE_SOL_AMOUNT", 0.02, { min: 0 }), { min: 0 }),
     autoTradeWalletReserveSol: readNumber("AUTO_TRADE_WALLET_RESERVE_SOL", 0.01, { min: 0 }),

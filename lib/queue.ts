@@ -215,7 +215,7 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
           mentionId: mention.id,
           authorId: mention.author_id,
           tradeResultKind: tradeResult.kind,
-          reason: tradeResult.kind === "failed" || tradeResult.kind === "already_processed" ? tradeResult.reason : undefined,
+          reason: tradeResult.kind === "success" ? undefined : tradeResult.reason,
           signature: tradeResult.kind === "success" ? tradeResult.signature : undefined
         });
       }

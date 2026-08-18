@@ -276,6 +276,9 @@ export async function executeAutoTradeFromMention(params: {
   if (!config.autoTradeEnabled) {
     return { kind: "not_applicable", reason: "auto_trading_disabled" };
   }
+  if (config.autoTradeUnavailableReason) {
+    return { kind: "not_applicable", reason: config.autoTradeUnavailableReason };
+  }
 
   const resolution = await resolveCalloutForAutoTrade(params.mentionText);
 

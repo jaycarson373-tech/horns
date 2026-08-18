@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 
 import { ProductFooter } from "@/components/product-footer";
 import { ProductHeader } from "@/components/product-header";
-import { accessIsConfigured } from "@/lib/access";
 import { pumpConfig } from "@/lib/pumpConfig";
 
 import "./site.css";
@@ -41,5 +40,5 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#ffffff", colorScheme: "light" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><ProductHeader walletConfigured={accessIsConfigured()} />{children}<ProductFooter /></body></html>;
+  return <html lang="en"><body><ProductHeader />{children}<ProductFooter /></body></html>;
 }

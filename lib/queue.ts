@@ -116,6 +116,10 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
   }
 
   await updateProcessedMention(mention.id, { status: "processing", error: null });
+  logEvent(eventName("mention.processing"), {
+    mentionId: mention.id,
+    authorId: mention.author_id
+  });
 
   try {
     if (!isDirectMention(mention.text, config.botUsername)) {
@@ -165,6 +169,10 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
     }
 
     const replyText = await generateReplyText(mention.text, { referencedText });
+    logEvent(eventName("mention.reply_ready"), {
+      mentionId: mention.id,
+      replyLength: replyText.length
+    });
     if (config.dryRun) {
       await updateProcessedMention(mention.id, { status: "dry_run", error: null });
       if (followerThresholdEnabled) {

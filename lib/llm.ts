@@ -64,6 +64,7 @@ const AGENT_SYSTEM_PROMPT = [
   "Return exactly one short reply suitable for a tweet.",
   "Answer the question first. No markdown, links, speculation, promises, or fake data."
 ].join(" ");
+const LLM_REQUEST_TIMEOUT_MS = 15_000;
 
 function toClaudeText(response: ClaudeResponse) {
   const text = response.content?.find((block) => block.type === "text" && typeof block.text === "string")?.text;
@@ -104,12 +105,13 @@ async function generateReplyWithOpenAI(prompt: string) {
         reasoning: { effort: "none" },
         text: { verbosity: "low" },
         max_output_tokens: config.llmMaxTokens
-      })
+      }),
+      signal: AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)
     });
 
     await throwForBadResponse("openai.responses", response);
     return (await response.json()) as OpenAIResponse;
-  });
+  }, { attempts: 2, initialDelayMs: 500, maxDelayMs: 1000 });
 
   return toOpenAIText(payload);
 }
@@ -140,12 +142,13 @@ async function generateReplyWithClaude(prompt: string) {
             content: prompt
           }
         ]
-      })
+      }),
+      signal: AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)
     });
 
     await throwForBadResponse("claude.messages", response);
     return (await response.json()) as ClaudeResponse;
-  });
+  }, { attempts: 2, initialDelayMs: 500, maxDelayMs: 1000 });
 
   return toClaudeText(payload);
 }

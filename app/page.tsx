@@ -146,7 +146,7 @@ export default async function HomePage() {
           <div className="execution-rail">
             <header><span>XBT / TRADE WALLET</span><strong>{executedTrades.length > 0 ? "VERIFIED ACTIVITY" : "NO VERIFIED TRADES"}</strong></header>
             <div className="execution-path"><span>FIND THE SIGNAL</span><i /><span>MAKE THE CALL</span><i /><span>TAKE THE TRADE</span><i /><span>FEED THE FLYWHEEL</span></div>
-            <footer>{executedTrades.length > 0 ? `${executedTrades.length} verified execution record${executedTrades.length === 1 ? "" : "s"} in the current ledger view.` : "EXECUTION RECORD QUIET / XBT IS STILL WATCHING"}</footer>
+            <footer>{executedTrades.length > 0 ? `${executedTrades.length} verified execution record${executedTrades.length === 1 ? "" : "s"} in the current ledger view.` : "EXECUTION RECORD QUIET / PUMPXBT IS STILL WATCHING"}<span>DEFAULT SIZE / 1% OF WALLET / 0.02 SOL MINIMUM</span></footer>
           </div>
         </div>
       </section>

@@ -2,7 +2,6 @@ import { generateReplyText } from "./llm";
 import { getConfig } from "./config";
 import {
   countRecentReplies,
-  countRecentAutoTradesByAuthor,
   createProcessedMention,
   updateProcessedMention
 } from "./supabase";
@@ -15,12 +14,6 @@ import {
   type XAuthor,
   type XMention
 } from "./x";
-import { executeAutoTradeFromMention } from "./pumpTrade";
-
-function toFollowersCount(author?: XAuthor | null) {
-  const followers = author?.public_metrics?.followers_count;
-  return typeof followers === "number" && Number.isFinite(followers) ? followers : null;
-}
 
 export type MentionProcessOutcome = {
   mentionId: string;
@@ -135,9 +128,6 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
     const author = mention.author ?? await fetchUserById(mention.author_id);
     if (!author) return markSkipped(mention, "author_unavailable", mention.author);
     if (author.protected) return markSkipped(mention, "protected_profile", author);
-    const authorFollowers = toFollowersCount(author);
-    const followerThresholdEnabled = config.autoTradeEnabled && authorFollowers !== null && authorFollowers >= config.autoTradeFollowerThreshold;
-    const followerThresholdBlocked = config.autoTradeEnabled && (authorFollowers === null || authorFollowers < config.autoTradeFollowerThreshold);
 
     await updateProcessedMention(mention.id, { authorUsername: author.username ?? null });
 
@@ -175,9 +165,6 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
     });
     if (config.dryRun) {
       await updateProcessedMention(mention.id, { status: "dry_run", error: null });
-      if (followerThresholdEnabled) {
-        logEvent(eventName("mention.auto_trade_skipped"), { mentionId: mention.id, reason: "dry_run", followerCount: authorFollowers });
-      }
       logEvent(eventName("mention.dry_run"), {
         mentionId: mention.id,
         authorId: mention.author_id,
@@ -200,50 +187,6 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
       authorUsername: author.username,
       replyId
     });
-
-    if (config.autoTradeEnabled && !config.dryRun && !followerThresholdBlocked) {
-      const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
-      const recentByCaller = await countRecentAutoTradesByAuthor(oneHourAgo, mention.author_id);
-
-      if (config.autoTradeMaxConsecutivePerCaller > 0 && recentByCaller >= config.autoTradeMaxConsecutivePerCaller) {
-        logEvent(eventName("mention.auto_trade_skipped"), {
-          mentionId: mention.id,
-          reason: "caller_rate_limit",
-          recentByCaller
-        });
-      } else {
-        const tradeResult = await executeAutoTradeFromMention({
-          mentionId: mention.id,
-          mentionText: mention.text,
-          authorId: mention.author_id,
-          authorUsername: author.username ?? null,
-          authorFollowers
-        });
-        logEvent(eventName("mention.auto_trade_result"), {
-          mentionId: mention.id,
-          authorId: mention.author_id,
-          tradeResultKind: tradeResult.kind,
-          reason: tradeResult.kind === "success" ? undefined : tradeResult.reason,
-          signature: tradeResult.kind === "success" ? tradeResult.signature : undefined
-        });
-      }
-    }
-
-    if (config.autoTradeEnabled && config.dryRun && !followerThresholdBlocked) {
-      logEvent(eventName("mention.auto_trade_skipped"), {
-        mentionId: mention.id,
-        reason: "dry_run"
-      });
-    }
-
-    if (config.autoTradeEnabled && followerThresholdBlocked) {
-      logEvent(eventName("mention.auto_trade_skipped"), {
-        mentionId: mention.id,
-        reason: "follower_gate",
-        authorFollowers,
-        threshold: config.autoTradeFollowerThreshold
-      });
-    }
 
     return { mentionId: mention.id, status: "replied", replyId };
   } catch (error) {

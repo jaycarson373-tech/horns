@@ -2,13 +2,7 @@
 
 PumpXBT is a Pump.fun signal terminal plus an opt-in X mention agent. It ranks verified on-chain opportunities, tracks public wallet movement, and publishes auditable treasury records.
 
-When `AUTO_TRADE_ENABLED=true`, the worker can execute callout-triggered SOL buys for qualifying mentions:
-
-- wallet-relative sizing (`AUTO_TRADE_BALANCE_PERCENT`, default 1%) with a configurable 0.02 SOL floor and fee reserve
-- follower gate (`AUTO_TRADE_FOLLOWER_THRESHOLD`, default 50)
-- per-project dedupe on mention id
-- per-caller cooldown via `AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER` (`0` means unlimited)
-- persisted execution records in `pump_trades` for terminal PnL tracking.
+Public X mentions are analysis-only. A tagged mint can be scanned and discussed, but it can never authorize a wallet transaction. Confirmed operator-controlled wallet transactions are persisted in `pump_trades` for terminal tracking.
 
 ## Architecture
 
@@ -48,9 +42,9 @@ Run one safe mention poll:
 npm run poll:once
 ```
 
-Keep `DRY_RUN=true` until the mention parsing, reply copy, and auto-trade thresholds are correct.
+Keep `DRY_RUN=true` until the mention parsing and reply copy are correct.
 
-## Auto Trade Variables
+## Trade Wallet Variables
 
 ```env
 AUTO_TRADE_ENABLED=false
@@ -92,7 +86,7 @@ AUTO_TRADE_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
 
 Never put `AUTO_TRADE_PRIVATE_KEY`, `TRADER_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, X secrets, or LLM keys in a `NEXT_PUBLIC_*` variable, Vercel client code, GitHub, or chat. Vercel does not need the trading wallet private key for the read-only site.
 
-Before enabling real execution, fund a dedicated low-balance trading wallet, keep `DRY_RUN=true`, verify mention parsing with `npm run poll:once`, and then deliberately set `AUTO_TRADE_ENABLED=true` and `DRY_RUN=false` on Railway.
+Fund only a dedicated low-balance trading wallet. Public mention processing never invokes the signer; `DRY_RUN` controls X posting, not operator wallet activity.
 
 ## X Agent
 
@@ -105,9 +99,9 @@ Users should mention the bot with one Solana mint or one unambiguous cashtag:
 @PumpXBT_ $TOKEN
 ```
 
-If the token is unknown, the worker queues the mint for ingestion and still executes auto-trade when enabled and the caller meets follower rules. A normal snapshot includes only cached liquidity, volume, flow, momentum, score, and whether a reviewed high-conviction signal is active.
+If the token is unknown, the worker queues the mint for ingestion. A normal snapshot includes only cached liquidity, volume, flow, momentum, score, and whether a reviewed high-conviction signal is active.
 
-Direct-mint callouts are the deterministic path. Cashtags are accepted only when the symbol resolves to one unambiguous indexed token. The worker deduplicates mention IDs, records every execution attempt, and refuses unsupported or ambiguous tokens. Caller rewards are not distributed by the current code; only caller performance and reputation are tracked today.
+Direct-mint scans are the deterministic path. Cashtags are accepted only when the symbol resolves to one unambiguous indexed token. The worker deduplicates mention IDs and refuses unsupported or ambiguous tokens. Caller rewards are not distributed by the current code; only caller performance and reputation are tracked today.
 
 Tagged replies are supported. When a mention is a reply, the worker loads the parent tweet and passes both messages to the configured text model so PumpXBT can answer the actual question in context. Set `OPENAI_API_KEY` plus `OPENAI_TEXT_MODEL` (default `gpt-5.4-nano`), or use the Claude variables. `MAX_USER_REPLIES_PER_HOUR` defaults to `10` to support short conversations while retaining spam protection.
 
@@ -201,6 +195,6 @@ Optional Claude tuning:
 - `LLM_TEMPERATURE` (default `0.1`)
 - `LLM_MAX_TOKENS` (default `240`)
 
-To execute trades, also set `AUTO_TRADE_ENABLED=true`, `AUTO_TRADE_PRIVATE_KEY` (or `TRADER_SECRET_KEY`), and `AUTO_TRADE_RPC_URL`. To index manual swaps from that same wallet, set `TRADE_WALLET_SYNC_ENABLED=true` and `HELIUS_API_KEY` on Railway.
+To index operator-controlled swaps from the trading wallet, set `TRADE_WALLET_SYNC_ENABLED=true`, `AUTO_TRADE_PRIVATE_KEY` (or `TRADER_SECRET_KEY`), and `HELIUS_API_KEY` on Railway. The key is used to derive the wallet address for this read-only sync; X mentions do not invoke transaction signing.
 
 Optional: `NEXT_PUBLIC_BOT_HANDLE`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BUY_URL`, `NEXT_PUBLIC_PUMP_FUN_TOKEN_URL`, `X_OAUTH2_USER_TOKEN`, `X_AUTO_POST_ENABLED`, and all threshold/rate-limit tuning variables shown in `.env.example`.

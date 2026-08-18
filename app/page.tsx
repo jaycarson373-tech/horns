@@ -1,95 +1,164 @@
 import Link from "next/link";
 
-import { CallerTable } from "@/components/caller-table";
-import { MarketTerminal } from "@/components/market-terminal";
-import { SectionHeading } from "@/components/section-heading";
-import { SignalBoard } from "@/components/signal-board";
 import { TokenActions } from "@/components/token-actions";
 import { pumpConfig } from "@/lib/pumpConfig";
-import { readCalloutEngineData, readTerminalData } from "@/lib/pumpData";
-import {
-  buildMarketRows,
-  buildWalletClusters,
-  buildXbtReads,
-  formatPercent,
-  formatUsd,
-  relativeTime,
-  tokenName
-} from "@/lib/pumpPresentation";
+import { readTerminalData, type PumpSignal, type TreasuryEvent } from "@/lib/pumpData";
+import { formatUsd, relativeTime, shortAddress, signalCategory } from "@/lib/pumpPresentation";
 
 export const dynamic = "force-dynamic";
 
+const SYSTEM_STEPS = ["SCAN", "SIGNAL", "CALL", "PROFIT", "BUYBACK & BURN"] as const;
+const REWARD_STEPS = ["MAKE A CALL", "PERFORMANCE TRACKED", "PROVE YOUR EDGE", "EARN"] as const;
+const AGENT_FUNCTIONS = [
+  ["WATCHES", "Pump.fun markets, launches, wallets, and callers."],
+  ["THINKS", "Connects market structure, momentum, caller performance, and onchain flow."],
+  ["CALLS", "Surfaces the strongest opportunities instead of every new launch."],
+  ["LEARNS", "Records outcomes so the intelligence layer can improve over time."],
+  ["COMPOUNDS", "Verified strategy profits feed the buyback-and-burn flywheel."]
+] as const;
+
+function signalName(signal: PumpSignal) {
+  return signal.token?.symbol ? `$${signal.token.symbol.toUpperCase()}` : shortAddress(signal.token_mint);
+}
+
+function LiveCall({ signal }: { signal: PumpSignal }) {
+  return (
+    <article className="home-call-card">
+      <header>
+        <span>XBT CALL</span>
+        <time suppressHydrationWarning>{relativeTime(signal.published_at || signal.created_at)} AGO</time>
+      </header>
+      <div className="home-call-title">
+        <div><small>{signalCategory(signal).toUpperCase()}</small><h3>{signalName(signal)}</h3></div>
+        <strong>{signal.confidence}<small>XBT SCORE</small></strong>
+      </div>
+      <p>{signal.thesis}</p>
+      <footer>
+        <span>STATUS / {signal.status.toUpperCase()}</span>
+        <span>{signal.token?.price_usd == null ? "PRICE / --" : `PRICE / ${formatUsd(signal.token.price_usd)}`}</span>
+        {signal.token?.dex_url ? <a href={signal.token.dex_url} target="_blank" rel="noreferrer">MARKET ↗</a> : null}
+      </footer>
+    </article>
+  );
+}
+
+function sumVerifiedTokenEvents(events: TreasuryEvent[], eventType: TreasuryEvent["event_type"], tokenMint: string) {
+  const matches = events.filter((event) => event.event_type === eventType && event.token_mint === tokenMint);
+  if (!matches.length) return null;
+  return matches.reduce((sum, event) => sum + event.amount, 0);
+}
+
+function formatTokenAmount(value: number) {
+  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
 export default async function HomePage() {
-  const [data, engine] = await Promise.all([readTerminalData(), readCalloutEngineData({ limit: 120 })]);
-  const rows = buildMarketRows(data, engine);
-  const reads = buildXbtReads(data, engine);
-  const clusters = buildWalletClusters(data.walletEvents);
+  const data = await readTerminalData();
   const tokenMint = pumpConfig.tokenMint || pumpConfig.publicTokenMint;
-  const buyUrl = process.env.NEXT_PUBLIC_BUY_URL?.trim() || (tokenMint ? `https://jup.ag/?sell=So11111111111111111111111111111111111111112&buy=${encodeURIComponent(tokenMint)}` : "");
+  const buyUrl = process.env.NEXT_PUBLIC_BUY_URL?.trim()
+    || (tokenMint ? `https://jup.ag/?sell=So11111111111111111111111111111111111111112&buy=${encodeURIComponent(tokenMint)}` : "");
+  const liveSignals = data.signals.slice(0, 3);
+  const executedTrades = data.autoTrades.filter((trade) => trade.status === "executed");
+  const realizedProfitEvents = data.treasuryEvents.filter((event) => event.event_type === "trade_profit");
+  const realizedProfitUsd = realizedProfitEvents.length > 0 && realizedProfitEvents.every((event) => event.amount_usd != null)
+    ? realizedProfitEvents.reduce((sum, event) => sum + (event.amount_usd ?? 0), 0)
+    : null;
+  const boughtBack = tokenMint ? sumVerifiedTokenEvents(data.treasuryEvents, "buyback", tokenMint) : null;
+  const burned = tokenMint ? sumVerifiedTokenEvents(data.treasuryEvents, "burn", tokenMint) : null;
+  const hasVerifiedFlywheelData = realizedProfitUsd != null || boughtBack != null || burned != null;
 
   return (
-    <main>
-      <section className="compact-hero page-width">
-        <div className="hero-message">
-          <span className="live-label"><i className={data.connected ? "live" : ""} />PUMPXBT / LIVE INTELLIGENCE</span>
+    <main className="home-page">
+      <section className="home-hero page-width">
+        <div className="home-hero-copy">
+          <span className="protocol-label"><i className={data.connected ? "live" : ""} />PUMPXBT / AGENT ONLINE</span>
           <h1>PUMP<span>XBT</span></h1>
-          <h2>THE INTELLIGENCE LAYER FOR PUMP.FUN</h2>
-          <p>Track the best callers. Watch smart-money flow. Find what’s moving before the timeline does.</p>
-          <div className="button-row"><Link className="primary-button" href="/terminal">OPEN TERMINAL</Link><Link className="secondary-button" href="/signals">VIEW SIGNALS</Link></div>
-        </div>
-        <div className="hero-preview" aria-label="Live PumpXBT market preview">
-          <header><span>XBT MARKET WATCH</span><small>{data.updatedAt ? `UPDATED ${relativeTime(data.updatedAt).toUpperCase()} AGO` : "AWAITING SYNC"}</small></header>
-          <div className="preview-head"><span>ASSET</span><span>1H</span><span>FLOW</span><span>SCORE</span></div>
-          {rows.slice(0, 5).map((token) => <a key={token.mint} href={token.dex_url || `https://solscan.io/token/${token.mint}`} target="_blank" rel="noreferrer"><span className="preview-token"><i>{token.symbol?.slice(0, 1) || "•"}</i><strong>{tokenName(token)}</strong></span><span className={(token.price_change_1h ?? 0) >= 0 ? "positive" : "negative"}>{formatPercent(token.price_change_1h)}</span><span>{token.smartWallets ? `${token.smartWallets}W / ${token.callers}C` : "--"}</span><strong>{token.score?.toFixed(0) ?? "--"}</strong></a>)}
-          {rows.length === 0 ? <div className="preview-empty"><span /><span /><span /><small>Market feed awaiting first indexed snapshot.</small></div> : null}
-          <footer><span>VOLUME</span><strong>{formatUsd(rows.reduce((sum, token) => sum + (token.volume_1h_usd ?? 0), 0))}</strong><span>TRACKED</span><strong>{data.stats.trackedMarkets ?? "--"}</strong></footer>
-        </div>
-      </section>
-
-      <div className="tape"><div><span>PUMP.FUN MARKET STATUS</span><strong>{data.connected ? "ONLINE" : "DELAYED"}</strong><span>ACTIVE SIGNALS</span><strong>{data.stats.activeSignals ?? "--"}</strong><span>SMART WALLETS</span><strong>{data.stats.trackedWallets ?? "--"}</strong><span>CALLOUTS INDEXED</span><strong>{engine.trades.length}</strong><span>LAST UPDATE</span><strong>{relativeTime(data.updatedAt)}</strong></div></div>
-
-      <section className="product-section page-width" id="terminal">
-        <SectionHeading eyebrow="01 / LIVE MARKET TERMINAL" title="PUMP.FUN, RANKED BY SIGNAL" description="Liquidity, momentum, smart-wallet activity, caller convergence, and XBT score." href="/terminal" linkLabel="FULL TERMINAL" />
-        <MarketTerminal rows={rows} compact />
-      </section>
-
-      <section className="product-section page-width" id="signals">
-        <SectionHeading eyebrow="02 / XBT SIGNALS" title="SIGNALS, NOT NOISE" description="Reviewed setups backed by live market evidence." href="/signals" linkLabel="ALL SIGNALS" />
-        <SignalBoard signals={data.signals} limit={4} />
-      </section>
-
-      <section className="product-section page-width dual-section">
-        <div>
-          <SectionHeading eyebrow="03 / TOP CALLERS" title="KNOW WHO ACTUALLY MAKES GOOD CALLS" href="/callers" linkLabel="LEADERBOARD" />
-          <CallerTable callers={engine.callers} compact />
-        </div>
-        <div>
-          <SectionHeading eyebrow="04 / SMART MONEY" title="TRACK THE WALLETS THAT MATTER" href="/wallets" linkLabel="WALLET FEED" />
-          <div className="wallet-cluster-feed">
-            {clusters.slice(0, 7).map((cluster) => <Link key={cluster.tokenMint} href={`/terminal?q=${encodeURIComponent(cluster.tokenMint)}`}><span><i className="flow-dot" /><strong>{cluster.walletCount} tracked wallet{cluster.walletCount === 1 ? "" : "s"}</strong> active in {cluster.token}</span><small>{cluster.buyCount} buys · {relativeTime(cluster.latest)} ago</small></Link>)}
-            {clusters.length === 0 ? <div className="product-empty">Wallet activity appears after Helius confirms tracked flows.</div> : null}
+          <h2>THE AGENTIC INTELLIGENCE LAYER FOR PUMP.FUN</h2>
+          <p>Finding high-quality calls across Pump.fun and turning intelligence into an onchain flywheel.</p>
+          <div className="button-row">
+            <Link className="primary-button" href="/terminal">OPEN TERMINAL</Link>
+            <Link className="secondary-button" href="/signals">VIEW LIVE CALLS</Link>
           </div>
         </div>
       </section>
 
-      <section className="product-section xbt-section" id="xbt">
+      <section className="home-band system-section">
         <div className="page-width">
-          <SectionHeading eyebrow="05 / XBT ANALYST" title="THE MARKET READ" description="A continuous intelligence feed built from Pump.fun market structure, wallets, callers, and momentum." href="/xbt" linkLabel="OPEN XBT" />
-          <div className="xbt-read-grid">
-            {reads.slice(0, 4).map((read) => <article key={`${read.label}-${read.headline}`}><header><span>{read.label}</span><i>LIVE</i></header><h3>{read.headline}</h3><p>{read.detail}</p><footer>{read.tokens.map((token) => <span key={token}>{token}</span>)}</footer></article>)}
-            {reads.length === 0 ? <div className="product-empty">XBT market reads publish after the first verified market snapshot.</div> : null}
+          <span className="section-index">01 / THE SYSTEM</span>
+          <h2>FIND THE SIGNAL. FEED THE FLYWHEEL.</h2>
+          <div className="system-flow" aria-label="Scan to buyback and burn system flow">
+            {SYSTEM_STEPS.map((step, index) => <div className="flow-step" key={step}><b>{String(index + 1).padStart(2, "0")}</b><strong>{step}</strong>{index < SYSTEM_STEPS.length - 1 ? <span aria-hidden>→</span> : null}</div>)}
+          </div>
+          <div className="system-copy">
+            <p>PumpXBT continuously scans Pump.fun for high-quality setups.</p>
+            <p>The strongest opportunities become calls.</p>
+            <p>Successful strategy performance can feed $PUMPXBT buybacks and burns.</p>
+          </div>
+          <div className="agent-functions" aria-label="XBT agent functions">
+            {AGENT_FUNCTIONS.map(([label, copy], index) => <div key={label}><b>{String(index + 1).padStart(2, "0")}</b><strong>{label}</strong><span>{copy}</span></div>)}
           </div>
         </div>
       </section>
 
-      <section className="product-section page-width flywheel-section" id="treasury">
-        <SectionHeading eyebrow="06 / TREASURY" title="THE PUMPXBT FLYWHEEL" href="/treasury" linkLabel="VIEW TREASURY" />
-        <div className="flywheel"><strong>FEES</strong><span>→</span><strong>PLAYS</strong><span>→</span><strong>PROFITS</strong><span>→</span><strong>BURN</strong></div>
-        <div className="flywheel-copy"><p>A portion of PumpXBT fees funds the treasury.</p><p>The treasury takes positions based on PumpXBT intelligence.</p><p>Profits buy back and burn $PUMPXBT.</p></div>
-        {tokenMint && buyUrl ? <TokenActions mint={tokenMint} buyUrl={buyUrl} /> : null}
+      <section className="home-band calls-section">
+        <div className="page-width home-split-heading">
+          <div><span className="section-index">02 / XBT CALLS</span><h2>HIGH-QUALITY CALLS.<br />NOT MORE NOISE.</h2></div>
+          <p>PumpXBT analyzes the Pump.fun market in real time to surface opportunities backed by multiple signals rather than blindly calling every launch.</p>
+        </div>
+        <div className="page-width home-call-grid">
+          {liveSignals.map((signal) => <LiveCall signal={signal} key={signal.id} />)}
+          {liveSignals.length === 0 ? <div className="home-honest-empty"><strong>NO VERIFIED CALLS LIVE.</strong><span>The feed stays empty until an approved signal clears the system.</span></div> : null}
+        </div>
+        <div className="page-width section-action"><Link href="/signals">VIEW ALL CALLS →</Link></div>
       </section>
 
-      <section className="bottom-cta"><div className="page-width"><p>SEE PUMP.FUN BEFORE THE TIMELINE DOES.</p><Link className="primary-button" href="/terminal">OPEN PUMPXBT</Link></div></section>
+      <section className="home-band rewards-section">
+        <div className="page-width">
+          <div className="home-split-heading">
+            <div><span className="section-index">03 / CALLER REPUTATION</span><h2>GOOD CALLS SHOULD GET PAID.</h2></div>
+            <div className="section-copy"><p>PumpXBT records calls and their actual outcomes. Strong callers rise by the quality of their calls, not follower count or reach.</p><small>CALLER REWARD DISTRIBUTION / IN DEVELOPMENT</small></div>
+          </div>
+          <div className="reward-flow">
+            {REWARD_STEPS.map((step, index) => <div key={step}><b>{String(index + 1).padStart(2, "0")}</b><strong>{step}</strong></div>)}
+          </div>
+          <div className="section-action"><Link href="/callers">VIEW CALLERS →</Link></div>
+        </div>
+      </section>
+
+      <section className="home-band execution-section">
+        <div className="page-width execution-layout">
+          <div><span className="section-index">04 / EXECUTION</span><h2>INTELLIGENCE WITH<br />SKIN IN THE GAME.</h2><p>PumpXBT includes an execution layer that can take positions from qualified callouts. Realized strategy profits can then enter the PumpXBT flywheel.</p></div>
+          <div className="execution-rail">
+            <header><span>XBT / EXECUTION ENGINE</span><strong>{executedTrades.length > 0 ? "VERIFIED ACTIVITY" : "CONFIGURABLE"}</strong></header>
+            <div><span>INTELLIGENCE</span><i /><span>POSITION</span><i /><span>REALIZED PROFIT</span></div>
+            <footer>{executedTrades.length > 0 ? `${executedTrades.length} verified execution record${executedTrades.length === 1 ? "" : "s"} in the current ledger view.` : "No execution performance is displayed until a transaction is verified."}</footer>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-band burn-section">
+        <div className="page-width">
+          <span className="section-index">05 / BUYBACK & BURN</span>
+          <h2>THE BETTER XBT GETS,<br />THE STRONGER THE FLYWHEEL.</h2>
+          <div className="burn-stack"><strong>HIGH-QUALITY CALLS</strong><span>↓</span><strong>REALIZED PROFITS</strong><span>↓</span><strong>$PUMPXBT BUYBACKS</strong><span>↓</span><strong>BURN</strong></div>
+          <p className="burn-support">Profits generated by the PumpXBT strategy are used to buy back and burn $PUMPXBT.</p>
+          {hasVerifiedFlywheelData ? <div className="verified-flywheel-data">
+            {realizedProfitUsd != null ? <article><span>VERIFIED REALIZED PROFIT</span><strong>{formatUsd(realizedProfitUsd)}</strong></article> : null}
+            {boughtBack != null ? <article><span>$PUMPXBT BOUGHT BACK</span><strong>{formatTokenAmount(boughtBack)}</strong></article> : null}
+            {burned != null ? <article><span>$PUMPXBT BURNED</span><strong>{formatTokenAmount(burned)}</strong></article> : null}
+          </div> : <div className="flywheel-proof-empty">Verified buybacks and burns will appear here after their onchain transactions are recorded.</div>}
+          <div className="section-action centered"><Link href="/treasury">OPEN PUBLIC LEDGER →</Link></div>
+        </div>
+      </section>
+
+      <section className="home-band token-section">
+        <div className="page-width token-layout">
+          <div><span className="section-index">06 / $PUMPXBT</span><h2>THE TOKEN POWERS THE LOOP.</h2><p>$PUMPXBT sits at the center of the product economy: intelligence, caller reputation, strategy execution, buybacks, and burns.</p>{tokenMint && buyUrl ? <TokenActions mint={tokenMint} buyUrl={buyUrl} /> : null}</div>
+          <div className="token-roles"><article><b>01</b><strong>INTELLIGENCE</strong><span>The market and caller layer.</span></article><article><b>02</b><strong>REWARDS</strong><span>The reputation economy.</span></article><article><b>03</b><strong>STRATEGY</strong><span>The execution loop.</span></article><article><b>04</b><strong>SUPPLY</strong><span>Buybacks and burns.</span></article></div>
+        </div>
+      </section>
+
+      <section className="bottom-cta"><div className="page-width"><div><span>PUMPXBT / TERMINAL</span><p>SEE PUMP.FUN BEFORE<br />THE TIMELINE DOES.</p></div><Link className="primary-button" href="/terminal">OPEN PUMPXBT</Link></div></section>
     </main>
   );
 }

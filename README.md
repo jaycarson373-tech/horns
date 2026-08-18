@@ -60,9 +60,32 @@ AUTO_TRADE_SOL_MINT=So11111111111111111111111111111111111111112
 AUTO_TRADE_SLIPPAGE_BPS=80
 AUTO_TRADE_RPC_URL=https://mainnet.helius-rpc.com/?api-key=...
 AUTO_TRADE_QUOTE_API_URL=https://quote-api.jup.ag/v6
-AUTO_TRADE_PRIVATE_KEY=... # or TRADER_SECRET_KEY
-    AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER=0
+AUTO_TRADE_PRIVATE_KEY=... # Railway worker only; or TRADER_SECRET_KEY
+AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER=0
 ```
+
+## Where Secrets Go
+
+Set the token mint in **Vercel** and **Railway**:
+
+```env
+PUMPXBT_TOKEN_MINT=YOUR_TOKEN_MINT
+NEXT_PUBLIC_PUMPXBT_TOKEN_MINT=YOUR_TOKEN_MINT
+```
+
+`NEXT_PUBLIC_PUMPXBT_TOKEN_MINT` is intentionally public. It drives the CA, Solscan, and buy links. `PUMPXBT_TOKEN_MINT` is the authoritative server value and must match it.
+
+Set the trading wallet only on the **Railway worker**:
+
+```env
+AUTO_TRADE_ENABLED=false
+AUTO_TRADE_PRIVATE_KEY=YOUR_BASE58_OR_JSON_SECRET_KEY
+AUTO_TRADE_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
+```
+
+Never put `AUTO_TRADE_PRIVATE_KEY`, `TRADER_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, X secrets, or LLM keys in a `NEXT_PUBLIC_*` variable, Vercel client code, GitHub, or chat. Vercel does not need the trading wallet private key for the read-only site.
+
+Before enabling real execution, fund a dedicated low-balance trading wallet, keep `DRY_RUN=true`, verify mention parsing with `npm run poll:once`, and then deliberately set `AUTO_TRADE_ENABLED=true` and `DRY_RUN=false` on Railway.
 
 ## X Agent
 
@@ -76,6 +99,8 @@ Users should mention the bot with one Solana mint or one unambiguous cashtag:
 ```
 
 If the token is unknown, the worker queues the mint for ingestion and still executes auto-trade when enabled and the caller meets follower rules. A normal snapshot includes only cached liquidity, volume, flow, momentum, score, and whether a reviewed high-conviction signal is active.
+
+Direct-mint callouts are the deterministic path. Cashtags are accepted only when the symbol resolves to one unambiguous indexed token. The worker deduplicates mention IDs, records every execution attempt, and refuses unsupported or ambiguous tokens. Caller rewards are not distributed by the current code; only caller performance and reputation are tracked today.
 
 X app permissions must be **Read and write**. Generate OAuth 1.0a Access Token and Secret after setting those permissions. The app API key/secret and account access token/secret are different values.
 

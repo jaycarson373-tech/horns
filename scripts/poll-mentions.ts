@@ -5,6 +5,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { botConfig } from "../lib/botConfig";
 import { getConfig } from "../lib/config";
 import { runBotOnce } from "../lib/queue";
+import { verifyXCredentials } from "../lib/x";
 
 let stopping = false;
 
@@ -22,9 +23,15 @@ async function main() {
   console.info("bot.config", {
     botProjectKey: config.botProjectKey,
     botUsername: config.botUsername,
+    botUserId: config.botUserId,
     promptVersion: botConfig.promptVersion,
-    dryRun: config.dryRun
+    dryRun: config.dryRun,
+    llmProvider: config.llmProvider,
+    pollIntervalMs: config.pollIntervalMs,
+    writeAuth: config.xOAuth2UserToken ? "oauth2_user_context" : "oauth1_user_context"
   });
+
+  await verifyXCredentials({ verifyWrite: !config.dryRun });
 
   do {
     try {

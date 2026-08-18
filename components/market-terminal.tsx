@@ -65,7 +65,7 @@ export function MarketTerminal({ rows, initialQuery = "", compact = false }: { r
                 </tr>
               );
             })}
-            {visible.length === 0 ? <tr><td colSpan={8} className="table-empty">No indexed markets match this view.</td></tr> : null}
+            {visible.length === 0 ? <tr><td colSpan={8} className="table-empty">XBT IS WATCHING — Waiting for the next verified market snapshot.</td></tr> : null}
           </tbody>
         </table>
       </div>

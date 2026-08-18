@@ -11,7 +11,7 @@ const NAV = [
   ["Agent", "/xbt"],
   ["Calls", "/signals"],
   ["Callers", "/callers"],
-  ["Terminal", "/#roadmap"],
+  ["Terminal", "/terminal"],
   ["Token", "/#token"],
   ["Treasury", "/treasury"]
 ] as const;

@@ -25,12 +25,17 @@ export default async function TerminalPage({ searchParams }: { searchParams: Pro
   const rows = buildMarketRows(data, engine);
   const totalVolume = rows.reduce((sum, token) => sum + (token.volume_1h_usd ?? 0), 0);
   const tokenMint = pumpConfig.tokenMint || pumpConfig.publicTokenMint;
+  const feedStatus = !data.connected
+    ? "FEED UNAVAILABLE"
+    : rows.length === 0
+      ? "PUMP.FUN MARKET STATUS: SYNCING"
+      : "FEED ONLINE";
 
   return (
     <main className="route-page page-width terminal-page">
       <div className="route-intro">
         <SectionHeading eyebrow="PUMPXBT / TERMINAL" title="THE PUMPXBT TERMINAL" description="Everything XBT sees, in one place." />
-        <div className="route-status"><span><i className={data.connected ? "live" : ""} />{data.connected ? "FEED ONLINE" : "FEED DELAYED"}</span><strong>{rows.length} MARKETS</strong><strong>{formatUsd(totalVolume)} 1H VOL</strong><strong>UPDATED {relativeTime(data.updatedAt).toUpperCase()}</strong></div>
+        <div className="route-status"><span><i className={data.connected ? "live" : ""} />{feedStatus}</span><strong>{rows.length} MARKETS</strong><strong>{formatUsd(totalVolume)} 1H VOL</strong><strong>UPDATED {relativeTime(data.updatedAt).toUpperCase()}</strong></div>
       </div>
 
       <p className="terminal-support">Calls, wallets, caller performance, smart money and real-time Pump.fun intelligence.</p>

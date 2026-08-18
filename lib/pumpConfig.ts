@@ -21,8 +21,8 @@ function number(name: string, fallback: number, minimum = 0) {
 }
 
 export const pumpConfig = {
-  botHandle: read("NEXT_PUBLIC_BOT_HANDLE")?.replace(/^@+/, "") ?? "",
-  publicTokenMint: read("NEXT_PUBLIC_PUMPXBT_TOKEN_MINT") ?? "",
+  botHandle: read("NEXT_PUBLIC_BOT_HANDLE")?.replace(/^@+/, "") ?? "PumpXBT_",
+  publicTokenMint: read("NEXT_PUBLIC_PUMPXBT_TOKEN_MINT") ?? "63rgqN7DhrwEC9xoDLeH8owePssdK6dZYcD5dfJbpump",
   tokenMint: read("PUMPXBT_TOKEN_MINT") ?? "",
   accessThresholdTokens: integer("PUMPXBT_ACCESS_THRESHOLD", 500_000, 1),
   sessionMinutes: integer("PUMPXBT_SESSION_MINUTES", 30, 5),

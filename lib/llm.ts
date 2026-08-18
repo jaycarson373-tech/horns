@@ -11,15 +11,6 @@ type ClaudeResponse = {
   content?: ClaudeTextBlock[];
 };
 
-type ClaudePayload = {
-  content?: ClaudeTextBlock[];
-  stop_reason?: string | null;
-  usage?: {
-    input_tokens?: number;
-    output_tokens?: number;
-  };
-};
-
 type OpenAIResponse = {
   output_text?: string;
   output?: Array<{
@@ -161,7 +152,16 @@ async function generateReplyWithClaude(prompt: string) {
 
 export async function generateReplyText(rawText: string, context?: ReplyContext) {
   const config = getConfig();
-  const grounding = await buildPumpXbtReply(rawText);
+  let grounding = "PumpXBT is watching Pump.fun. Send one token mint or $TICKER for a verified market read.";
+
+  try {
+    grounding = await buildPumpXbtReply(rawText);
+  } catch (error) {
+    console.warn("pumpxbt.grounding_fallback", {
+      reason: error instanceof Error ? error.message : String(error)
+    });
+  }
+
   const prompt = buildReplyPrompt(rawText, grounding, context);
 
   try {

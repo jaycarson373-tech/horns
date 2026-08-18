@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ContractAddress } from "@/components/contract-address";
 import { TokenActions } from "@/components/token-actions";
 import { pumpConfig } from "@/lib/pumpConfig";
 import { readTerminalData, type PumpSignal, type TreasuryEvent } from "@/lib/pumpData";
@@ -54,7 +55,9 @@ function formatTokenAmount(value: number) {
 
 export default async function HomePage() {
   const [data, projectMetrics] = await Promise.all([readTerminalData(), readProjectMetrics()]);
+  const botHandle = pumpConfig.botHandle;
   const tokenMint = pumpConfig.tokenMint || pumpConfig.publicTokenMint;
+  const askXbtUrl = botHandle ? `https://x.com/intent/post?text=${encodeURIComponent(`@${botHandle} `)}` : "";
   const buyUrl = process.env.NEXT_PUBLIC_BUY_URL?.trim()
     || (tokenMint ? `https://jup.ag/?sell=So11111111111111111111111111111111111111112&buy=${encodeURIComponent(tokenMint)}` : "");
   const liveSignals = data.signals.slice(0, 3);
@@ -73,14 +76,16 @@ export default async function HomePage() {
         <div className="home-hero-copy">
           <span className="protocol-label"><i className={data.connected ? "live" : ""} />PUMPXBT / PUMP.FUN AGENTIC INTELLIGENCE</span>
           <h1>PUMP<span>XBT</span></h1>
-          <h2>THE AGENTIC INTELLIGENCE LAYER FOR PUMP.FUN</h2>
-          <p>Autonomous intelligence tracking markets, callers and smart money across Pump.fun in real time.</p>
+          <h2>THE AGENT-POWERED INTELLIGENCE LAYER FOR PUMP.FUN</h2>
+          <p>Live calls, onchain intelligence, smart-money tracking and autonomous trading across Pump.fun.</p>
           <div className="button-row">
             <Link className="primary-button" href="/terminal">OPEN TERMINAL</Link>
-            <Link className="secondary-button" href="/signals">VIEW CALLS</Link>
+            <Link className="secondary-button" href="/signals">VIEW LIVE CALLS</Link>
           </div>
         </div>
       </section>
+
+      {tokenMint ? <section className="home-contract-strip" aria-label="PumpXBT contract address"><div className="page-width"><ContractAddress mint={tokenMint} pumpFunUrl={pumpConfig.pumpFunTokenUrl} /></div></section> : null}
 
       <section className="home-live-metrics" aria-label="Verified PumpXBT metrics">
         <div className="page-width">
@@ -107,7 +112,7 @@ export default async function HomePage() {
         <div className="page-width">
           <div className="home-split-heading">
             <div><span className="section-index">02 / CALLER REPUTATION</span><h2>GOOD CALLS SHOULD GET PAID.</h2></div>
-            <div className="section-copy"><p>PumpXBT tracks calls by actual performance. Proven callers build reputation and earn rewards for finding opportunities early.</p><small>PERFORMANCE OVER REACH. / REWARDS IN DEVELOPMENT</small></div>
+            <div className="section-copy"><p>PumpXBT tracks actual call performance so proven edge can be rewarded.</p><small>PERFORMANCE OVER REACH. / VERIFIED PAYOUTS ONLY</small></div>
           </div>
           <div className="reward-flow">
             {REWARD_STEPS.map((step, index) => <div key={step}><b>{String(index + 1).padStart(2, "0")}</b><strong>{step}</strong></div>)}
@@ -128,11 +133,18 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {botHandle ? <section className="home-band xbt-ask-section">
+        <div className="page-width home-split-heading">
+          <div><span className="section-index">04 / XBT ON X</span><h2>SEND XBT A CA.<br />GET THE READ.</h2></div>
+          <div className="section-copy"><p>Ask about a Pump.fun token directly on X. XBT breaks down what it can verify across onchain activity, wallets, callouts and market signals.</p><div className="xbt-ask-capabilities"><span>TOKEN READS</span><span>PUBLIC CALLOUTS</span><span>ACTIVE CALL FOLLOW-UPS</span></div><a className="inline-cta" href={askXbtUrl} target="_blank" rel="noreferrer">ASK XBT ON X →</a></div>
+        </div>
+      </section> : null}
+
       <section className="home-band execution-section">
         <div className="page-width execution-layout">
-          <div><span className="section-index">04 / EXECUTION</span><h2>INTELLIGENCE WITH<br />SKIN IN THE GAME.</h2><p>PumpXBT intelligence can inform treasury positions. When those positions produce realized profits, they feed the flywheel.</p></div>
+          <div><span className="section-index">05 / EXECUTION</span><h2>INTELLIGENCE WITH<br />SKIN IN THE GAME.</h2><p>100% of creator fees fuel the XBT trade wallet. XBT uses its intelligence to make calls and trade. Realized trading profits and verified call rewards feed the flywheel.</p></div>
           <div className="execution-rail">
-            <header><span>XBT / EXECUTION ENGINE</span><strong>{executedTrades.length > 0 ? "VERIFIED ACTIVITY" : "CONFIGURABLE"}</strong></header>
+            <header><span>XBT / TRADE WALLET</span><strong>{executedTrades.length > 0 ? "VERIFIED ACTIVITY" : "NO VERIFIED TRADES"}</strong></header>
             <div className="execution-path"><span>FIND THE SIGNAL</span><i /><span>MAKE THE CALL</span><i /><span>TAKE THE TRADE</span><i /><span>FEED THE FLYWHEEL</span></div>
             <footer>{executedTrades.length > 0 ? `${executedTrades.length} verified execution record${executedTrades.length === 1 ? "" : "s"} in the current ledger view.` : "EXECUTION RECORD QUIET / XBT IS STILL WATCHING"}</footer>
           </div>
@@ -141,10 +153,10 @@ export default async function HomePage() {
 
       <section className="home-band burn-section">
         <div className="page-width">
-          <span className="section-index">05 / BUYBACK & BURN</span>
+          <span className="section-index">06 / BUYBACK & BURN</span>
           <h2>THE PUMPXBT FLYWHEEL</h2>
-          <div className="flywheel-flow" aria-label="Fees to buyback and burn flow"><strong>FEES</strong><span>→</span><strong>PLAYS</strong><span>→</span><strong>PROFITS</strong><span>→</span><strong>BUYBACK & BURN</strong></div>
-          <div className="flywheel-copy"><p>PumpXBT fees fund the treasury.</p><p>The treasury takes positions using PumpXBT intelligence.</p><p><strong>Realized profits buy back and burn $PUMPXBT.</strong></p></div>
+          <div className="flywheel-flow expanded" aria-label="Creator fees to buyback and burn flow"><strong>100% CREATOR FEES</strong><span>→</span><strong>XBT TRADE WALLET</strong><span>→</span><strong>CALLS + TRADES</strong><span>→</span><strong>REALIZED TRADING PROFITS + VERIFIED CALL REWARDS</strong><span>→</span><strong>BUYBACK & BURN $PUMPXBT</strong></div>
+          <div className="flywheel-copy"><p>Creator fees fuel the XBT trade wallet.</p><p>XBT intelligence informs calls and trades.</p><p><strong>Realized trading profits and verified call rewards buy back and burn $PUMPXBT.</strong></p></div>
           {hasVerifiedFlywheelData ? <div className="verified-flywheel-data">
             {realizedProfitUsd != null ? <article><span>VERIFIED REALIZED PROFIT</span><strong>{formatUsd(realizedProfitUsd)}</strong></article> : null}
             {boughtBack != null ? <article><span>$PUMPXBT BOUGHT BACK</span><strong>{formatTokenAmount(boughtBack)}</strong></article> : null}
@@ -156,7 +168,7 @@ export default async function HomePage() {
 
       <section className="home-band token-section" id="token">
         <div className="page-width token-layout">
-          <div><span className="section-index">06 / $PUMPXBT</span><h2>THE DEFLATIONARY ENGINE BEHIND XBT.</h2><p>$PUMPXBT is designed around the agent economy: intelligence, caller reputation, strategy execution, and a verified profit-to-buyback-and-burn loop.</p>{tokenMint && buyUrl ? <TokenActions mint={tokenMint} buyUrl={buyUrl} /> : null}</div>
+          <div><span className="section-index">07 / $PUMPXBT</span><h2>THE DEFLATIONARY ENGINE BEHIND XBT.</h2><p>$PUMPXBT connects the intelligence layer, XBT agent, caller reputation, trade wallet, and verified buyback-and-burn loop.</p>{tokenMint && buyUrl ? <TokenActions mint={tokenMint} buyUrl={buyUrl} /> : null}</div>
           <div className="token-roles"><article><b>01</b><strong>INTELLIGENCE</strong><span>The market and caller layer.</span></article><article><b>02</b><strong>REWARDS</strong><span>The reputation economy.</span></article><article><b>03</b><strong>STRATEGY</strong><span>The execution loop.</span></article><article><b>04</b><strong>SUPPLY</strong><span>Buybacks and burns.</span></article></div>
         </div>
       </section>

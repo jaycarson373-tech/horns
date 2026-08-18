@@ -51,6 +51,9 @@ export type AppConfig = {
   xApiSecret?: string;
   xBearerToken: string;
   xOAuth2UserToken?: string;
+  xAutoPostEnabled: boolean;
+  xAutoPostMinIntervalMinutes: number;
+  xAutoPostMaxEventAgeMinutes: number;
   autoTradeEnabled: boolean;
   autoTradeSolAmount: number;
   autoTradeFollowerThreshold: number;
@@ -273,6 +276,9 @@ export function getConfig(): AppConfig {
     xApiSecret: env("X_API_SECRET"),
     xBearerToken: required("X_BEARER_TOKEN"),
     xOAuth2UserToken: env("X_OAUTH2_USER_TOKEN"),
+    xAutoPostEnabled: readBoolean("X_AUTO_POST_ENABLED", false),
+    xAutoPostMinIntervalMinutes: readInteger("X_AUTO_POST_MIN_INTERVAL_MINUTES", 15, { min: 1 }),
+    xAutoPostMaxEventAgeMinutes: readInteger("X_AUTO_POST_MAX_EVENT_AGE_MINUTES", 1440, { min: 1 }),
     autoTradeEnabled,
     autoTradeSolAmount: readNumber("AUTO_TRADE_SOL_AMOUNT", 0.1, { min: 0 }),
     autoTradeFollowerThreshold: readInteger("AUTO_TRADE_FOLLOWER_THRESHOLD", 50, { min: 0 }),

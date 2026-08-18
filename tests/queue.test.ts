@@ -13,3 +13,12 @@ test("retries failures and rate limits without replaying completed mentions", ()
   assert.equal(isRetryableProcessedMention("skipped", "user_rate_limited", false), true);
   assert.equal(isRetryableProcessedMention("replied", null, false), false);
 });
+
+test("recovers queued and stale processing mentions after a worker restart", () => {
+  assert.equal(isRetryableProcessedMention("queued", null, false), true);
+  assert.equal(isRetryableProcessedMention("processing", null, false, new Date().toISOString()), false);
+  assert.equal(
+    isRetryableProcessedMention("processing", null, false, new Date(Date.now() - 6 * 60_000).toISOString()),
+    true
+  );
+});

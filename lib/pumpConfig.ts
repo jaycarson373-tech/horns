@@ -1,5 +1,6 @@
 const read = (name: string) => process.env[name]?.trim() || undefined;
 const heliusApiKey = read("HELIUS_API_KEY");
+const publicTokenMint = read("NEXT_PUBLIC_PUMPXBT_TOKEN_MINT") ?? "63rgqN7DhrwEC9xoDLeH8owePssdK6dZYcD5dfJbpump";
 
 function integer(name: string, fallback: number, minimum = 0) {
   const raw = read(name);
@@ -23,7 +24,8 @@ function number(name: string, fallback: number, minimum = 0) {
 
 export const pumpConfig = {
   botHandle: read("NEXT_PUBLIC_BOT_HANDLE")?.replace(/^@+/, "") ?? "PumpXBT_",
-  publicTokenMint: read("NEXT_PUBLIC_PUMPXBT_TOKEN_MINT") ?? "63rgqN7DhrwEC9xoDLeH8owePssdK6dZYcD5dfJbpump",
+  publicTokenMint,
+  pumpFunTokenUrl: read("NEXT_PUBLIC_PUMP_FUN_TOKEN_URL") ?? `https://pump.fun/coin/${encodeURIComponent(publicTokenMint)}`,
   tokenMint: read("PUMPXBT_TOKEN_MINT") ?? "",
   creatorWallet: read("PUMPXBT_CREATOR_WALLET") ?? "",
   balanceRpcUrl: read("PUMPXBT_BALANCE_RPC_URL")

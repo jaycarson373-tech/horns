@@ -334,6 +334,7 @@ async function editWithReplicate(buffer: Buffer) {
   throw new Error("Replicate prediction timed out");
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function addMemePfpWithSharp(buffer: Buffer) {
   const metadata = await sharp(buffer).metadata();
   const width = metadata.width ?? 1024;

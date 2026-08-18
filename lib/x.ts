@@ -485,7 +485,7 @@ export async function replyToMentionWithImage(mentionId: string, mediaId: string
             in_reply_to_tweet_id: mentionId
           },
           media: {
-            media_ids: [mediaId]
+            media_ids: [mediaId] as [string]
           }
         });
 
@@ -515,12 +515,12 @@ export async function replyToMentionWithImage(mentionId: string, mediaId: string
           in_reply_to_tweet_id: mentionId
         },
         media: {
-          media_ids: [mediaId]
+          media_ids: [mediaId] as [string]
         }
       };
 
       try {
-        const response = await getWriteClient().v2.tweet(payload as any);
+        const response = await getWriteClient().v2.tweet(payload);
 
         const replyId = response.data?.id;
         if (!replyId) {
@@ -574,5 +574,28 @@ export async function replyToMentionWithText(mentionId: string, text: string) {
       throw new NonRetryableError("X create tweet response did not include a reply id");
     }
     return replyId;
+  });
+}
+
+export async function createStandalonePost(text: string) {
+  const config = getConfig();
+  const postText = text.trim();
+  if (!postText) throw new NonRetryableError("X post text cannot be empty");
+  if (postText.length > 280) {
+    throw new NonRetryableError(`X post text is ${postText.length} characters; maximum is 280`);
+  }
+
+  if (config.xOAuth2UserToken) {
+    const response = await xOAuth2PostJson<XCreateTweetResponse>("/tweets", { text: postText });
+    const postId = response.data?.id;
+    if (!postId) throw new NonRetryableError("X create tweet response did not include a post id");
+    return postId;
+  }
+
+  return withRetry("x.post", async () => {
+    const response = await getWriteClient().v2.tweet({ text: postText });
+    const postId = response.data?.id;
+    if (!postId) throw new NonRetryableError("X create tweet response did not include a post id");
+    return postId;
   });
 }

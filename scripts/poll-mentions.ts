@@ -3,8 +3,10 @@ import "dotenv/config";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { botConfig } from "../lib/botConfig";
+import { runVerifiedAutoPostOnce } from "../lib/autoPost";
 import { getConfig } from "../lib/config";
 import { runBotOnce } from "../lib/queue";
+import { verifySupabaseSchema } from "../lib/supabase";
 import { verifyXCredentials } from "../lib/x";
 
 let stopping = false;
@@ -32,10 +34,12 @@ async function main() {
   });
 
   await verifyXCredentials({ verifyWrite: !config.dryRun });
+  await verifySupabaseSchema();
 
   do {
     try {
       await runBotOnce("worker");
+      await runVerifiedAutoPostOnce();
     } catch (error) {
       console.error(`${config.botProjectKey}.poll.failed`, error);
     }

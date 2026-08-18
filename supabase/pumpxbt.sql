@@ -171,6 +171,25 @@ create table if not exists public.treasury_events (
 
 create index if not exists treasury_events_time_idx on public.treasury_events (block_time desc);
 
+create table if not exists public.x_publications (
+  id uuid primary key default gen_random_uuid(),
+  bot_project text not null,
+  event_key text not null,
+  event_type text not null check (event_type in ('signal', 'trade', 'trade_profit', 'buyback', 'burn')),
+  source_id text not null,
+  post_text text not null,
+  status text not null default 'queued' check (status in ('queued', 'published', 'failed')),
+  tweet_id text,
+  error text,
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (bot_project, event_key)
+);
+
+create index if not exists x_publications_status_idx
+  on public.x_publications (bot_project, status, published_at desc);
+
 create table if not exists public.access_challenges (
   id uuid primary key default gen_random_uuid(),
   wallet text not null,
@@ -214,6 +233,10 @@ drop trigger if exists pump_trades_set_updated_at on public.pump_trades;
 create trigger pump_trades_set_updated_at before update on public.pump_trades
 for each row execute function public.set_updated_at();
 
+drop trigger if exists x_publications_set_updated_at on public.x_publications;
+create trigger x_publications_set_updated_at before update on public.x_publications
+for each row execute function public.set_updated_at();
+
 alter table public.pump_tokens enable row level security;
 alter table public.signal_candidates enable row level security;
 alter table public.tracked_wallets enable row level security;
@@ -223,6 +246,7 @@ alter table public.signal_updates enable row level security;
 alter table public.treasury_events enable row level security;
 alter table public.access_challenges enable row level security;
 alter table public.pump_trades enable row level security;
+alter table public.x_publications enable row level security;
 
 -- Intentionally no public policies. Only server-side service-role clients may read or write.
 -- Wallet labels must describe verifiable public-chain observations, never non-public access.

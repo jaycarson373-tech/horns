@@ -61,8 +61,20 @@ function isOlderThanLimit(createdAt: string | undefined, maxAgeMinutes: number) 
   return Number.isFinite(created) && Date.now() - created > maxAgeMinutes * 60_000;
 }
 
-export function isRetryableProcessedMention(status: string, error: string | null | undefined, dryRun: boolean) {
+export function isRetryableProcessedMention(
+  status: string,
+  error: string | null | undefined,
+  dryRun: boolean,
+  updatedAt?: string | null
+) {
+  const updatedTime = updatedAt ? Date.parse(updatedAt) : Number.NaN;
+  const staleProcessing = status === "processing"
+    && Number.isFinite(updatedTime)
+    && Date.now() - updatedTime >= 5 * 60_000;
+
   return status === "failed"
+    || status === "queued"
+    || staleProcessing
     || (!dryRun && status === "dry_run")
     || (status === "skipped" && error?.endsWith("_rate_limited"));
 }
@@ -97,7 +109,8 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
   if (!created.created && !isRetryableProcessedMention(
     created.record?.status ?? "",
     created.record?.error,
-    config.dryRun
+    config.dryRun,
+    created.record?.updated_at
   )) {
     return { mentionId: mention.id, status: "duplicate", reason: "already_processed" };
   }

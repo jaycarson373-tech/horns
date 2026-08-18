@@ -73,7 +73,7 @@ PUMPXBT_TOKEN_MINT=YOUR_TOKEN_MINT
 NEXT_PUBLIC_PUMPXBT_TOKEN_MINT=YOUR_TOKEN_MINT
 ```
 
-`NEXT_PUBLIC_PUMPXBT_TOKEN_MINT` is intentionally public. It drives the CA, Solscan, and buy links. `PUMPXBT_TOKEN_MINT` is the authoritative server value and must match it.
+`NEXT_PUBLIC_PUMPXBT_TOKEN_MINT` is intentionally public. It drives the CA, Solscan, Pump.fun, and buy links. `PUMPXBT_TOKEN_MINT` is the authoritative server value and must match it. Override the derived Pump.fun coin URL with `NEXT_PUBLIC_PUMP_FUN_TOKEN_URL` only when the canonical token page differs.
 
 Set the trading wallet only on the **Railway worker**:
 
@@ -105,6 +105,16 @@ Direct-mint callouts are the deterministic path. Cashtags are accepted only when
 Tagged replies are supported. When a mention is a reply, the worker loads the parent tweet and passes both messages to the configured text model so PumpXBT can answer the actual question in context. Set `OPENAI_API_KEY` plus `OPENAI_TEXT_MODEL` (default `gpt-5.4-nano`), or use the Claude variables. `MAX_USER_REPLIES_PER_HOUR` defaults to `10` to support short conversations while retaining spam protection.
 
 At startup, the worker verifies that `BOT_USERNAME`, `BOT_USER_ID`, the bearer-token lookup, and the authenticated write account all resolve to the same X identity. Mentions recorded during dry run are retried once `DRY_RUN=false`; completed replies remain idempotent.
+
+The same worker can publish verified state changes from Supabase. It posts approved active signals, confirmed trade entries, realized-profit records, buybacks, and burns at most once per source event. It does not publish idle filler or unverified PnL.
+
+```env
+X_AUTO_POST_ENABLED=false
+X_AUTO_POST_MIN_INTERVAL_MINUTES=15
+X_AUTO_POST_MAX_EVENT_AGE_MINUTES=1440
+```
+
+Run the latest `supabase/pumpxbt.sql` before enabling this; the publication ledger is required for deduplication. Turn it on only after replies work with `DRY_RUN=false`.
 
 X app permissions must be **Read and write**. Generate OAuth 1.0a Access Token and Secret after setting those permissions. The app API key/secret and account access token/secret are different values.
 
@@ -172,4 +182,4 @@ Optional Claude tuning:
 
 To execute trades, also set `AUTO_TRADE_ENABLED=true`, `AUTO_TRADE_PRIVATE_KEY` (or `TRADER_SECRET_KEY`), and `AUTO_TRADE_RPC_URL`.
 
-Optional: `NEXT_PUBLIC_BOT_HANDLE`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BUY_URL`, `X_OAUTH2_USER_TOKEN`, and all threshold/rate-limit tuning variables shown in `.env.example`.
+Optional: `NEXT_PUBLIC_BOT_HANDLE`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BUY_URL`, `NEXT_PUBLIC_PUMP_FUN_TOKEN_URL`, `X_OAUTH2_USER_TOKEN`, `X_AUTO_POST_ENABLED`, and all threshold/rate-limit tuning variables shown in `.env.example`.

@@ -97,6 +97,25 @@ export function getSupabase() {
   return supabaseClient;
 }
 
+export async function verifySupabaseSchema() {
+  const config = getConfig();
+  const requiredTables = [
+    "processed_mentions",
+    "pump_tokens",
+    "pump_signals",
+    ...(config.xAutoPostEnabled ? ["x_publications"] : [])
+  ];
+
+  for (const table of requiredTables) {
+    const { error } = await getSupabase().from(table).select("*", { head: true, count: "exact" }).limit(1);
+    if (error) {
+      throw new Error(`Supabase table ${table} is unavailable: ${error.message}`);
+    }
+  }
+
+  console.info("supabase.schema.verified", { tables: requiredTables });
+}
+
 export async function createProcessedMention(input: CreateProcessedMentionInput) {
   const config = getConfig();
   const row = {
@@ -194,7 +213,6 @@ export async function updateAutoTrade(tradeId: string, patch: {
   executed_at?: string | null;
   author_followers?: number | null;
 }) {
-  const config = getConfig();
   const update: Record<string, unknown> = {
     updated_at: new Date().toISOString()
   };

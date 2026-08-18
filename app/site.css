@@ -507,9 +507,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .product-brand img { width: 34px; height: 34px; }
   .product-brand small { display: none; }
   .nav-toggle { grid-column: 3; grid-row: 1; justify-self: end; margin: 0; }
-  .header-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; min-height: 54px; justify-content: center; padding: 8px 12px; border: 1px solid var(--line-dark); background: rgba(255,255,255,.97); }
-  .header-search.open { top: auto; bottom: 62px; }
-  .wallet-button { min-width: 150px; justify-content: center; }
+  .header-actions { display: none; }
   .product-nav { top: 58px; flex-wrap: wrap; }
   .product-nav a { width: 33.333%; padding: 0 5px; }
   .compact-hero { padding-top: 34px; gap: 28px; }

@@ -5,8 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { WalletButton } from "./wallet-button";
-
 const NAV = [
   ["Agent", "/xbt"],
   ["Calls", "/signals"],
@@ -16,7 +14,7 @@ const NAV = [
   ["Treasury", "/treasury"]
 ] as const;
 
-export function ProductHeader({ walletConfigured }: { walletConfigured: boolean }) {
+export function ProductHeader() {
   const pathname = usePathname();
   const [searching, setSearching] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,7 +34,6 @@ export function ProductHeader({ walletConfigured }: { walletConfigured: boolean 
           {searching ? <input autoFocus name="q" placeholder="Token or mint" aria-label="Search token or mint" /> : null}
           <button type={searching ? "submit" : "button"} onClick={() => !searching && setSearching(true)} title="Search markets"><span aria-hidden>⌕</span><span className="search-label">SEARCH</span></button>
         </form>
-        <WalletButton configured={walletConfigured} />
       </div>
     </header>
   );

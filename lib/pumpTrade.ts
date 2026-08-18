@@ -18,6 +18,7 @@ import { resolveCalloutToken, type CalloutResolution } from "./pumpxbtAgent";
 import { pumpConfig } from "./pumpConfig";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
+const LAMPORTS_PER_SOL = 1_000_000_000n;
 
 type QuoteRoute = {
   inAmount?: string;
@@ -139,8 +140,34 @@ async function getMintDecimals(connection: Connection, mint: string) {
   return typeof decimals === "number" && Number.isInteger(decimals) ? decimals : null;
 }
 
-async function fetchQuote(config: ReturnType<typeof getConfig>, tokenMint: string) {
-  const amount = Math.max(config.autoTradeSolAmount, 0.000001);
+export function calculateTradeAmountSol(params: {
+  walletLamports: number;
+  balancePercent: number;
+  minimumSol: number;
+  reserveSol: number;
+}) {
+  const walletLamports = BigInt(Math.max(0, Math.floor(params.walletLamports)));
+  const percentageBps = BigInt(Math.max(1, Math.round(params.balancePercent * 100)));
+  const minimumLamports = BigInt(Math.max(0, Math.ceil(params.minimumSol * Number(LAMPORTS_PER_SOL))));
+  const reserveLamports = BigInt(Math.max(0, Math.ceil(params.reserveSol * Number(LAMPORTS_PER_SOL))));
+  const availableLamports = walletLamports > reserveLamports ? walletLamports - reserveLamports : 0n;
+
+  if (availableLamports < minimumLamports) {
+    throw new Error(`Trading wallet needs at least ${(params.minimumSol + params.reserveSol).toFixed(4)} SOL for the minimum order and fee reserve.`);
+  }
+
+  const percentageLamports = walletLamports * percentageBps / 10_000n;
+  const requestedLamports = percentageLamports > minimumLamports ? percentageLamports : minimumLamports;
+  const amountLamports = requestedLamports < availableLamports ? requestedLamports : availableLamports;
+
+  return {
+    amountLamports,
+    amountSol: Number(amountLamports) / Number(LAMPORTS_PER_SOL)
+  };
+}
+
+async function fetchQuote(config: ReturnType<typeof getConfig>, tokenMint: string, amountSol: number) {
+  const amount = Math.max(amountSol, 0.000001);
   const amountLamports = Math.floor(amount * 1_000_000_000);
 
   const quoteUrl = new URL(`${config.autoTradeQuoteApiUrl.replace(/\/$/, "")}/quote`);
@@ -260,25 +287,23 @@ export async function executeAutoTradeFromMention(params: {
     return { kind: "not_applicable", reason: "no_token" };
   }
   const tokenSymbol = token?.symbol ?? null;
-
-  const created = await createAutoTrade({
-    mentionId: params.mentionId,
-    authorId: params.authorId,
-    tokenMint,
-    tokenSymbol,
-    solAmount: config.autoTradeSolAmount,
-    authorUsername: params.authorUsername,
-    authorFollowers: params.authorFollowers,
-    status: config.dryRun ? "submitted" : "queued",
-    reason: config.dryRun ? "dry_run" : null
-  });
-
-  if (!created.created) {
-    return { kind: "already_processed", trade: created.trade, reason: "already_executed_or_queued" };
-  }
+  let createdTrade: PumpTrade | null = null;
 
   if (config.dryRun) {
-    return { kind: "dry_run", trade: created.trade };
+    const created = await createAutoTrade({
+      mentionId: params.mentionId,
+      authorId: params.authorId,
+      tokenMint,
+      tokenSymbol,
+      solAmount: config.autoTradeMinSolAmount,
+      authorUsername: params.authorUsername,
+      authorFollowers: params.authorFollowers,
+      status: "submitted",
+      reason: "dry_run"
+    });
+    return created.created
+      ? { kind: "dry_run", trade: created.trade }
+      : { kind: "already_processed", trade: created.trade, reason: "already_executed_or_queued" };
   }
 
   try {
@@ -288,8 +313,32 @@ export async function executeAutoTradeFromMention(params: {
 
     const trader = parseSecretKey(config.autoTradePrivateKey);
     const connection = new Connection(config.autoTradeRpcUrl);
+    const walletLamports = await connection.getBalance(trader.publicKey, "confirmed");
+    const tradeSize = calculateTradeAmountSol({
+      walletLamports,
+      balancePercent: config.autoTradeBalancePercent,
+      minimumSol: config.autoTradeMinSolAmount,
+      reserveSol: config.autoTradeWalletReserveSol
+    });
+    const created = await createAutoTrade({
+      mentionId: params.mentionId,
+      authorId: params.authorId,
+      tokenMint,
+      tokenSymbol,
+      solAmount: tradeSize.amountSol,
+      authorUsername: params.authorUsername,
+      authorFollowers: params.authorFollowers,
+      status: "queued",
+      reason: null
+    });
+
+    if (!created.created) {
+      return { kind: "already_processed", trade: created.trade, reason: "already_executed_or_queued" };
+    }
+    createdTrade = created.trade;
+
     const decimals = await getMintDecimals(connection, tokenMint);
-    const quote = await fetchQuote(config, tokenMint);
+    const quote = await fetchQuote(config, tokenMint, tradeSize.amountSol);
     const serializedTx = await fetchSwapTransaction(config, trader, quote.route);
     await updateAutoTrade(created.trade.id, { status: "submitted", reason: null });
     const signature = await sendAndConfirm(connection, serializedTx);
@@ -308,15 +357,38 @@ export async function executeAutoTradeFromMention(params: {
 
     return { kind: "success", trade: updated, signature };
   } catch (error) {
-    const updated = await updateAutoTrade(created.trade.id, {
-      status: "failed" as AutoTradeStatus,
-      reason: error instanceof Error ? error.message : "trade_failed"
-    });
+    const reason = error instanceof Error ? error.message : "trade_failed";
+    if (createdTrade) {
+      const updated = await updateAutoTrade(createdTrade.id, {
+        status: "failed" as AutoTradeStatus,
+        reason
+      });
+      return { kind: "failed", trade: updated, reason };
+    }
 
     return {
       kind: "failed",
-      trade: updated,
-      reason: error instanceof Error ? error.message : "trade_failed"
+      trade: {
+        id: "unrecorded",
+        bot_project: config.botProjectKey,
+        mention_id: params.mentionId,
+        author_id: params.authorId,
+        author_username: params.authorUsername,
+        author_followers: params.authorFollowers,
+        token_mint: tokenMint,
+        token_symbol: tokenSymbol,
+        sol_amount: config.autoTradeMinSolAmount,
+        token_amount: null,
+        token_decimals: null,
+        quote_amount_lamports: null,
+        status: "failed",
+        reason,
+        tx_signature: null,
+        executed_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      reason
     };
   }
 }

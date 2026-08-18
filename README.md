@@ -4,7 +4,7 @@ PumpXBT is a Pump.fun signal terminal plus an opt-in X mention agent. It ranks v
 
 When `AUTO_TRADE_ENABLED=true`, the worker can execute callout-triggered SOL buys for qualifying mentions:
 
-- fixed-size trade input (`AUTO_TRADE_SOL_AMOUNT`, default 0.1 SOL)
+- wallet-relative sizing (`AUTO_TRADE_BALANCE_PERCENT`, default 1%) with a configurable 0.02 SOL floor and fee reserve
 - follower gate (`AUTO_TRADE_FOLLOWER_THRESHOLD`, default 50)
 - per-project dedupe on mention id
 - per-caller cooldown via `AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER` (`0` means unlimited)
@@ -54,7 +54,9 @@ Keep `DRY_RUN=true` until the mention parsing, reply copy, and auto-trade thresh
 
 ```env
 AUTO_TRADE_ENABLED=false
-AUTO_TRADE_SOL_AMOUNT=0.1
+AUTO_TRADE_BALANCE_PERCENT=1
+AUTO_TRADE_MIN_SOL_AMOUNT=0.02
+AUTO_TRADE_WALLET_RESERVE_SOL=0.01
 AUTO_TRADE_FOLLOWER_THRESHOLD=50
 AUTO_TRADE_SOL_MINT=So11111111111111111111111111111111111111112
 AUTO_TRADE_SLIPPAGE_BPS=80

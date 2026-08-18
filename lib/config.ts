@@ -55,7 +55,9 @@ export type AppConfig = {
   xAutoPostMinIntervalMinutes: number;
   xAutoPostMaxEventAgeMinutes: number;
   autoTradeEnabled: boolean;
-  autoTradeSolAmount: number;
+  autoTradeBalancePercent: number;
+  autoTradeMinSolAmount: number;
+  autoTradeWalletReserveSol: number;
   autoTradeFollowerThreshold: number;
   autoTradeSolMint: string;
   autoTradeSlippageBps: number;
@@ -280,7 +282,9 @@ export function getConfig(): AppConfig {
     xAutoPostMinIntervalMinutes: readInteger("X_AUTO_POST_MIN_INTERVAL_MINUTES", 15, { min: 1 }),
     xAutoPostMaxEventAgeMinutes: readInteger("X_AUTO_POST_MAX_EVENT_AGE_MINUTES", 1440, { min: 1 }),
     autoTradeEnabled,
-    autoTradeSolAmount: readNumber("AUTO_TRADE_SOL_AMOUNT", 0.1, { min: 0 }),
+    autoTradeBalancePercent: readNumber("AUTO_TRADE_BALANCE_PERCENT", 1, { min: 0.01, max: 100 }),
+    autoTradeMinSolAmount: readNumber("AUTO_TRADE_MIN_SOL_AMOUNT", readNumber("AUTO_TRADE_SOL_AMOUNT", 0.02, { min: 0 }), { min: 0 }),
+    autoTradeWalletReserveSol: readNumber("AUTO_TRADE_WALLET_RESERVE_SOL", 0.01, { min: 0 }),
     autoTradeFollowerThreshold: readInteger("AUTO_TRADE_FOLLOWER_THRESHOLD", 50, { min: 0 }),
     autoTradeSolMint: env("AUTO_TRADE_SOL_MINT") ?? "So11111111111111111111111111111111111111112",
     autoTradeSlippageBps: readInteger("AUTO_TRADE_SLIPPAGE_BPS", 80, { min: 1, max: 1000 }),

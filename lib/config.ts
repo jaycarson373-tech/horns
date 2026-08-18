@@ -32,6 +32,7 @@ export type AppConfig = {
   openaiImageModel: string;
   openaiModerationModel: string;
   pollIntervalMs: number;
+  pumpXbtDailyNote?: string;
   replicateApiToken?: string;
   replicateBaseUrl: string;
   replicateImageField: string;
@@ -67,6 +68,8 @@ export type AppConfig = {
   autoTradeQuoteApiKey?: string;
   autoTradePrivateKey?: string;
   autoTradeMaxConsecutivePerCaller: number;
+  heliusApiKey?: string;
+  tradeWalletSyncEnabled: boolean;
 };
 
 function env(name: string) {
@@ -263,6 +266,7 @@ export function getConfig(): AppConfig {
     openaiImageModel: env("OPENAI_IMAGE_MODEL") ?? "gpt-image-1.5",
     openaiModerationModel: env("OPENAI_MODERATION_MODEL") ?? "omni-moderation-latest",
     pollIntervalMs: readInteger("POLL_INTERVAL_MS", 60_000, { min: 10_000 }),
+    pumpXbtDailyNote: env("PUMPXBT_DAILY_NOTE"),
     replicateApiToken,
     replicateBaseUrl: env("REPLICATE_BASE_URL") ?? "https://api.replicate.com/v1",
     replicateImageField: env("REPLICATE_IMAGE_FIELD") ?? "image",
@@ -297,6 +301,8 @@ export function getConfig(): AppConfig {
     autoTradeQuoteApiUrl,
     autoTradeQuoteApiKey,
     autoTradePrivateKey,
-    autoTradeMaxConsecutivePerCaller: readInteger("AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER", 8, { min: 0 })
+    autoTradeMaxConsecutivePerCaller: readInteger("AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER", 8, { min: 0 }),
+    heliusApiKey,
+    tradeWalletSyncEnabled: readBoolean("TRADE_WALLET_SYNC_ENABLED", autoTradeEnabled)
   };
 }

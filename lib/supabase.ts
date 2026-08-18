@@ -116,7 +116,10 @@ export async function verifySupabaseSchema() {
   console.info("supabase.schema.verified", { tables: requiredTables });
 
   if (!config.xAutoPostEnabled) {
-    for (const table of ["pump_tokens", "pump_signals"]) {
+    const optionalTables = config.tradeWalletSyncEnabled || config.autoTradeEnabled
+      ? ["pump_tokens", "pump_signals", "pump_trades"]
+      : ["pump_tokens", "pump_signals"];
+    for (const table of optionalTables) {
       const { error } = await getSupabase().from(table).select("*", { head: true, count: "exact" }).limit(1);
       if (error) {
         console.warn("supabase.schema.optional_table_unavailable", { table, error: error.message });
@@ -209,6 +212,16 @@ export async function createAutoTrade(input: CreatePumpTradeInput) {
   }
 
   return { created: true as const, trade: data };
+}
+
+export async function findAutoTradeBySignature(signature: string) {
+  const { data, error } = await getSupabase()
+    .from(TRADES_TABLE)
+    .select("*")
+    .eq("tx_signature", signature)
+    .maybeSingle<PumpTrade>();
+  if (error) throw error;
+  return data;
 }
 
 export async function updateAutoTrade(tradeId: string, patch: {

@@ -78,7 +78,7 @@ export async function buildPumpXbtReply(text: string) {
     return `Mint ${queuedMint.slice(0, 4)}...${queuedMint.slice(-4)} queued. Running Pump.fun index check before I publish a signal.`;
   }
   if (!token) {
-    return "Tag me with one Pump.fun mint or one $TICKER. I track verified callers, rank conviction, and auto-report active setups.";
+    return "PumpXBT is online and watching the Pump.fun tape. Keep the conversation natural; ask for a token read when you want one.";
   }
 
   const signal = await findActiveSignal(token.mint);

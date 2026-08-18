@@ -12,6 +12,7 @@
     "start": "npm run poll",
     "poll": "tsx scripts/poll-mentions.ts",
     "poll:once": "tsx scripts/poll-mentions.ts --once",
+    "callout": "tsx scripts/publish-callout.ts",
     "ingest:market": "tsx scripts/ingest-market.ts",
     "lint": "eslint . --max-warnings=0"
   },

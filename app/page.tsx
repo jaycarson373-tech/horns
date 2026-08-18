@@ -103,7 +103,7 @@ export default async function HomePage() {
         </div>
         <div className="page-width home-call-grid">
           {liveSignals.map((signal) => <LiveCall signal={signal} key={signal.id} />)}
-          {liveSignals.length === 0 ? <div className="home-honest-empty"><strong>NO HIGH-CONVICTION CALLS</strong><span>XBT is still scanning.</span></div> : null}
+          {liveSignals.length === 0 ? <div className="home-honest-empty"><strong>NO HIGH-CONVICTION SIGNALS</strong><span>PumpXBT is still scanning.</span></div> : null}
         </div>
         <div className="page-width section-action"><Link href="/signals">VIEW ALL CALLS →</Link></div>
       </section>
@@ -112,7 +112,7 @@ export default async function HomePage() {
         <div className="page-width">
           <div className="home-split-heading">
             <div><span className="section-index">02 / CALLER REPUTATION</span><h2>GOOD CALLS SHOULD GET PAID.</h2></div>
-            <div className="section-copy"><p>PumpXBT tracks actual call performance so proven edge can be rewarded.</p><small>PERFORMANCE OVER REACH. / VERIFIED PAYOUTS ONLY</small></div>
+            <div className="section-copy"><p>PumpXBT tracks actual call performance so proven edge can be measured.</p><small>PERFORMANCE OVER REACH. / REWARDS NOT YET AUTOMATED</small></div>
           </div>
           <div className="reward-flow">
             {REWARD_STEPS.map((step, index) => <div key={step}><b>{String(index + 1).padStart(2, "0")}</b><strong>{step}</strong></div>)}
@@ -135,14 +135,14 @@ export default async function HomePage() {
 
       {botHandle ? <section className="home-band xbt-ask-section">
         <div className="page-width home-split-heading">
-          <div><span className="section-index">04 / XBT ON X</span><h2>SEND XBT A CA.<br />GET THE READ.</h2></div>
-          <div className="section-copy"><p>Ask about a Pump.fun token directly on X. XBT breaks down what it can verify across onchain activity, wallets, callouts and market signals.</p><div className="xbt-ask-capabilities"><span>TOKEN READS</span><span>PUBLIC CALLOUTS</span><span>ACTIVE CALL FOLLOW-UPS</span></div><a className="inline-cta" href={askXbtUrl} target="_blank" rel="noreferrer">ASK XBT ON X →</a></div>
+          <div><span className="section-index">04 / PUMPXBT ON X</span><h2>ASK PUMPXBT<br />ON X.</h2></div>
+          <div className="section-copy"><p>Send PumpXBT a contract address or ask what it thinks about a token. PumpXBT breaks down what it can verify across wallets, onchain activity and market signals.</p><div className="xbt-ask-capabilities"><span>TOKEN READS</span><span>PUBLIC CALLOUTS</span><span>ACTIVE CALL FOLLOW-UPS</span></div><a className="inline-cta" href={askXbtUrl} target="_blank" rel="noreferrer">ASK PUMPXBT →</a></div>
         </div>
       </section> : null}
 
       <section className="home-band execution-section">
         <div className="page-width execution-layout">
-          <div><span className="section-index">05 / EXECUTION</span><h2>INTELLIGENCE WITH<br />SKIN IN THE GAME.</h2><p>100% of creator fees fuel the XBT trade wallet. XBT uses its intelligence to make calls and trade. Realized trading profits and verified call rewards feed the flywheel.</p></div>
+          <div><span className="section-index">05 / EXECUTION</span><h2>INTELLIGENCE WITH<br />SKIN IN THE GAME.</h2><p>Creator fees can fund the PumpXBT trading wallet. PumpXBT can trade from the same intelligence behind its public calls. Realized outcomes appear only after verification.</p></div>
           <div className="execution-rail">
             <header><span>XBT / TRADE WALLET</span><strong>{executedTrades.length > 0 ? "VERIFIED ACTIVITY" : "NO VERIFIED TRADES"}</strong></header>
             <div className="execution-path"><span>FIND THE SIGNAL</span><i /><span>MAKE THE CALL</span><i /><span>TAKE THE TRADE</span><i /><span>FEED THE FLYWHEEL</span></div>
@@ -155,8 +155,8 @@ export default async function HomePage() {
         <div className="page-width">
           <span className="section-index">06 / BUYBACK & BURN</span>
           <h2>THE PUMPXBT FLYWHEEL</h2>
-          <div className="flywheel-flow expanded" aria-label="Creator fees to buyback and burn flow"><strong>100% CREATOR FEES</strong><span>→</span><strong>XBT TRADE WALLET</strong><span>→</span><strong>CALLS + TRADES</strong><span>→</span><strong>REALIZED TRADING PROFITS + VERIFIED CALL REWARDS</strong><span>→</span><strong>BUYBACK & BURN $PUMPXBT</strong></div>
-          <div className="flywheel-copy"><p>Creator fees fuel the XBT trade wallet.</p><p>XBT intelligence informs calls and trades.</p><p><strong>Realized trading profits and verified call rewards buy back and burn $PUMPXBT.</strong></p></div>
+          <div className="flywheel-flow expanded" aria-label="Creator fees to verified buyback and burn policy"><strong>CREATOR FEES</strong><span>→</span><strong>PUMPXBT WALLET</strong><span>→</span><strong>CALLS + TRADES</strong><span>→</span><strong>REALIZED PROFITS</strong><span>→</span><strong>VERIFIED BUYBACK & BURN</strong></div>
+          <div className="flywheel-copy"><p>Creator fees can fund the PumpXBT trading wallet.</p><p>PumpXBT intelligence informs calls and trades.</p><p><strong>Profit, buyback and burn records appear only after verification.</strong></p></div>
           {hasVerifiedFlywheelData ? <div className="verified-flywheel-data">
             {realizedProfitUsd != null ? <article><span>VERIFIED REALIZED PROFIT</span><strong>{formatUsd(realizedProfitUsd)}</strong></article> : null}
             {boughtBack != null ? <article><span>$PUMPXBT BOUGHT BACK</span><strong>{formatTokenAmount(boughtBack)}</strong></article> : null}

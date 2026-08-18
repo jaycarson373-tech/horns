@@ -101,9 +101,9 @@ export async function verifySupabaseSchema() {
   const config = getConfig();
   const requiredTables = [
     "processed_mentions",
-    "pump_tokens",
-    "pump_signals",
-    ...(config.xAutoPostEnabled ? ["x_publications"] : [])
+    ...(config.xAutoPostEnabled
+      ? ["pump_tokens", "pump_signals", "pump_trades", "treasury_events", "x_publications"]
+      : [])
   ];
 
   for (const table of requiredTables) {
@@ -114,6 +114,15 @@ export async function verifySupabaseSchema() {
   }
 
   console.info("supabase.schema.verified", { tables: requiredTables });
+
+  if (!config.xAutoPostEnabled) {
+    for (const table of ["pump_tokens", "pump_signals"]) {
+      const { error } = await getSupabase().from(table).select("*", { head: true, count: "exact" }).limit(1);
+      if (error) {
+        console.warn("supabase.schema.optional_table_unavailable", { table, error: error.message });
+      }
+    }
+  }
 }
 
 export async function createProcessedMention(input: CreateProcessedMentionInput) {

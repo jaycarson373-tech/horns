@@ -47,13 +47,13 @@ export default function DocsPage() {
         <article className="docs-panel">
           <h2>03 / BUYBACK + BURN POLICY</h2>
           <p>
-            100% of realized callout profits and validated caller rewards are routed toward buyback and burn.
-            No off-ledger accounting is performed; records are only inserted after on-chain signatures are confirmed.
+            Creator fees can fund the PumpXBT trading wallet. PumpXBT intelligence can inform calls and trades.
+            Treasury outcomes, buybacks and burns are recorded only after on-chain signatures are confirmed.
           </p>
           <p>
-            Treasury records are queryable in the main terminal under Treasury and remain independent from caller ranking so there is no hidden balancing.
+            The current worker does not automatically route creator fees, realized profits or caller rewards. Treasury records remain independently verifiable in the public ledger.
           </p>
-          <Link href="#">See treasury proof rows in terminal</Link>
+          <Link href="/treasury">See treasury proof rows in terminal</Link>
         </article>
 
         <article className="docs-panel">

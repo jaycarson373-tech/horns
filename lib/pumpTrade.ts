@@ -15,7 +15,6 @@ import {
   type PumpTrade
 } from "./supabase";
 import { resolveCalloutToken, type CalloutResolution } from "./pumpxbtAgent";
-import { pumpConfig } from "./pumpConfig";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const LAMPORTS_PER_SOL = 1_000_000_000n;
@@ -254,8 +253,7 @@ export function isTradeableCallout(resolution: CalloutResolution) {
     return false;
   }
 
-  const mint = resolution.token?.mint ?? resolution.queuedMint!;
-  return mint.toLowerCase().endsWith(pumpConfig.tokenSuffix);
+  return true;
 }
 
 export async function resolveCalloutForAutoTrade(text: string) {

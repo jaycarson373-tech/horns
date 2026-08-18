@@ -175,9 +175,12 @@ async function fetchQuote(config: ReturnType<typeof getConfig>, tokenMint: strin
   quoteUrl.searchParams.set("outputMint", tokenMint);
   quoteUrl.searchParams.set("amount", String(amountLamports));
   quoteUrl.searchParams.set("slippageBps", String(config.autoTradeSlippageBps));
-  quoteUrl.searchParams.set("onlyDirectRoutes", "true");
+  quoteUrl.searchParams.set("restrictIntermediateTokens", "true");
+  quoteUrl.searchParams.set("instructionVersion", "V2");
 
-  const response = await fetch(quoteUrl.toString());
+  const response = await fetch(quoteUrl.toString(), {
+    headers: config.autoTradeQuoteApiKey ? { "x-api-key": config.autoTradeQuoteApiKey } : undefined
+  });
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`Quote request failed: ${response.status} ${response.statusText} ${getQuoteErrorText(body)}`);
@@ -199,7 +202,8 @@ async function fetchSwapTransaction(config: ReturnType<typeof getConfig>, trader
   const response = await fetch(`${config.autoTradeQuoteApiUrl.replace(/\/$/, "")}/swap`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...(config.autoTradeQuoteApiKey ? { "x-api-key": config.autoTradeQuoteApiKey } : {})
     },
     body: JSON.stringify({
       quoteResponse: quoteRoute,

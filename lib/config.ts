@@ -63,6 +63,7 @@ export type AppConfig = {
   autoTradeSlippageBps: number;
   autoTradeRpcUrl: string;
   autoTradeQuoteApiUrl: string;
+  autoTradeQuoteApiKey?: string;
   autoTradePrivateKey?: string;
   autoTradeMaxConsecutivePerCaller: number;
 };
@@ -221,6 +222,8 @@ export function getConfig(): AppConfig {
   const autoTradeEnabled = readBoolean("AUTO_TRADE_ENABLED", false);
   const autoTradePrivateKey = env("AUTO_TRADE_PRIVATE_KEY") || env("TRADER_SECRET_KEY");
   const configuredAutoTradeRpcUrl = env("AUTO_TRADE_RPC_URL");
+  const autoTradeQuoteApiUrl = env("AUTO_TRADE_QUOTE_API_URL") ?? "https://api.jup.ag/swap/v1";
+  const autoTradeQuoteApiKey = env("JUPITER_API_KEY");
   const heliusApiKey = env("HELIUS_API_KEY");
   const autoTradeRpcUrl = configuredAutoTradeRpcUrl
     ?? (heliusApiKey ? `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(heliusApiKey)}` : "");
@@ -230,7 +233,6 @@ export function getConfig(): AppConfig {
   if (autoTradeEnabled && !dryRun && !autoTradeRpcUrl) {
     throw new Error("AUTO_TRADE_RPC_URL or HELIUS_API_KEY is required when AUTO_TRADE_ENABLED=true and DRY_RUN=false");
   }
-
   return {
     botMode,
     llmProvider,
@@ -289,7 +291,8 @@ export function getConfig(): AppConfig {
     autoTradeSolMint: env("AUTO_TRADE_SOL_MINT") ?? "So11111111111111111111111111111111111111112",
     autoTradeSlippageBps: readInteger("AUTO_TRADE_SLIPPAGE_BPS", 80, { min: 1, max: 1000 }),
     autoTradeRpcUrl,
-    autoTradeQuoteApiUrl: env("AUTO_TRADE_QUOTE_API_URL") ?? "https://quote-api.jup.ag/v6",
+    autoTradeQuoteApiUrl,
+    autoTradeQuoteApiKey,
     autoTradePrivateKey,
     autoTradeMaxConsecutivePerCaller: readInteger("AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER", 8, { min: 0 })
   };

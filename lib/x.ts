@@ -23,6 +23,8 @@ export type XMention = {
   text: string;
   author_id: string;
   created_at?: string;
+  conversation_id?: string;
+  referenced_tweet_id?: string;
   author?: XAuthor;
 };
 
@@ -32,6 +34,11 @@ type XTweetResponse = {
     text: string;
     author_id?: string;
     created_at?: string;
+    conversation_id?: string;
+    referenced_tweets?: Array<{
+      id: string;
+      type: "replied_to" | "quoted" | "retweeted";
+    }>;
   }>;
   includes?: {
     users?: XAuthor[];
@@ -42,6 +49,13 @@ type XTweet = NonNullable<XTweetResponse["data"]>[number];
 
 type XUserResponse = {
   data?: XAuthor;
+};
+
+type XTweetLookupResponse = {
+  data?: {
+    id: string;
+    text: string;
+  };
 };
 
 type XCreateTweetResponse = {
@@ -113,6 +127,8 @@ function tweetsToMentions(response: XTweetResponse) {
       text: tweet.text,
       author_id: tweet.author_id,
       created_at: tweet.created_at,
+      conversation_id: tweet.conversation_id,
+      referenced_tweet_id: tweet.referenced_tweets?.find((reference) => reference.type === "replied_to")?.id,
       author: usersById.get(tweet.author_id)
     }));
 }
@@ -246,7 +262,7 @@ export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
     const response = await xApiGet<XTweetResponse>(`/users/${config.botUserId}/mentions`, {
       max_results: maxResults,
       expansions: "author_id",
-      "tweet.fields": "author_id,created_at",
+      "tweet.fields": "author_id,created_at,conversation_id,referenced_tweets",
       "user.fields": "id,name,username,profile_image_url,protected,public_metrics"
     });
     mentions = tweetsToMentions(response);
@@ -284,7 +300,7 @@ async function fetchRecentDirectMentionSearch(limit?: number): Promise<XMention[
       query,
       max_results: searchMaxResults,
       expansions: "author_id",
-    "tweet.fields": "author_id,created_at",
+      "tweet.fields": "author_id,created_at,conversation_id,referenced_tweets",
       "user.fields": "id,name,username,profile_image_url,protected,public_metrics"
     });
 
@@ -307,6 +323,14 @@ export async function fetchUserById(userId: string) {
   });
 
   return response.data;
+}
+
+export async function fetchTweetTextById(tweetId: string) {
+  const response = await xApiGet<XTweetLookupResponse>(`/tweets/${tweetId}`, {
+    "tweet.fields": "text"
+  });
+
+  return response.data?.text?.trim() || null;
 }
 
 export async function uploadImageForTweet(imagePath: string) {

@@ -102,6 +102,8 @@ If the token is unknown, the worker queues the mint for ingestion and still exec
 
 Direct-mint callouts are the deterministic path. Cashtags are accepted only when the symbol resolves to one unambiguous indexed token. The worker deduplicates mention IDs, records every execution attempt, and refuses unsupported or ambiguous tokens. Caller rewards are not distributed by the current code; only caller performance and reputation are tracked today.
 
+Tagged replies are supported. When a mention is a reply, the worker loads the parent tweet and passes both messages to the configured text model so PumpXBT can answer the actual question in context. Set `OPENAI_API_KEY` plus `OPENAI_TEXT_MODEL` (default `gpt-5.4-nano`), or use the Claude variables. `MAX_USER_REPLIES_PER_HOUR` defaults to `10` to support short conversations while retaining spam protection.
+
 X app permissions must be **Read and write**. Generate OAuth 1.0a Access Token and Secret after setting those permissions. The app API key/secret and account access token/secret are different values.
 
 Get the bot ID:
@@ -131,6 +133,14 @@ NEXT_PUBLIC_PUMPXBT_TOKEN_MINT=REAL_MINT
 ```
 
 `PUMPXBT_TOKEN_MINT` is authoritative server-side. The public copy is display-only.
+
+To show the creator/trading-wallet SOL balance on the homepage, set its public address in Vercel. Never put its private key there:
+
+```env
+PUMPXBT_CREATOR_WALLET=PUBLIC_WALLET_ADDRESS
+```
+
+The homepage reads token price from DexScreener and reads realized profit and buybacks only from verified `treasury_events` rows. Missing or unverifiable values render as `--`.
 
 ## Deployment
 

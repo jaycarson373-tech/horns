@@ -1,4 +1,5 @@
 const read = (name: string) => process.env[name]?.trim() || undefined;
+const heliusApiKey = read("HELIUS_API_KEY");
 
 function integer(name: string, fallback: number, minimum = 0) {
   const raw = read(name);
@@ -24,9 +25,12 @@ export const pumpConfig = {
   botHandle: read("NEXT_PUBLIC_BOT_HANDLE")?.replace(/^@+/, "") ?? "PumpXBT_",
   publicTokenMint: read("NEXT_PUBLIC_PUMPXBT_TOKEN_MINT") ?? "63rgqN7DhrwEC9xoDLeH8owePssdK6dZYcD5dfJbpump",
   tokenMint: read("PUMPXBT_TOKEN_MINT") ?? "",
+  creatorWallet: read("PUMPXBT_CREATOR_WALLET") ?? "",
+  balanceRpcUrl: read("PUMPXBT_BALANCE_RPC_URL")
+    ?? (heliusApiKey ? `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(heliusApiKey)}` : "https://api.mainnet-beta.solana.com"),
   accessThresholdTokens: integer("PUMPXBT_ACCESS_THRESHOLD", 500_000, 1),
   sessionMinutes: integer("PUMPXBT_SESSION_MINUTES", 30, 5),
-  heliusApiKey: read("HELIUS_API_KEY"),
+  heliusApiKey,
   cronSecret: read("CRON_SECRET"),
   sessionSecret: read("SESSION_SECRET"),
   highConvictionMinScore: number("HIGH_CONVICTION_MIN_SCORE", 85, 0),

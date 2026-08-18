@@ -28,6 +28,7 @@ export type AppConfig = {
   moderationEnabled: boolean;
   openaiApiKey?: string;
   openaiBaseUrl: string;
+  openaiTextModel: string;
   openaiImageModel: string;
   openaiModerationModel: string;
   pollIntervalMs: number;
@@ -242,13 +243,14 @@ export function getConfig(): AppConfig {
     dryRunGenerateImage,
     imageProvider,
     maxGlobalRepliesPerHour: readInteger("MAX_GLOBAL_REPLIES_PER_HOUR", 20, { min: 0 }),
-    maxUserRepliesPerHour: readInteger("MAX_USER_REPLIES_PER_HOUR", 1, { min: 0 }),
+    maxUserRepliesPerHour: readInteger("MAX_USER_REPLIES_PER_HOUR", 10, { min: 0 }),
     maxMentionAgeMinutes: readInteger("MAX_MENTION_AGE_MINUTES", 1440, { min: 0 }),
     maxMentionsPerPoll: readInteger("MAX_MENTIONS_PER_POLL", 100, { min: 5, max: 100 }),
     maxProfileImageBytes: readInteger("MAX_PROFILE_IMAGE_BYTES", 10_000_000, { min: 100_000 }),
     moderationEnabled: readBoolean("MODERATION_ENABLED", true),
     openaiApiKey,
     openaiBaseUrl: env("OPENAI_BASE_URL") ?? "https://api.openai.com/v1",
+    openaiTextModel: env("OPENAI_TEXT_MODEL") ?? "gpt-5.4-nano",
     openaiImageModel: env("OPENAI_IMAGE_MODEL") ?? "gpt-image-1.5",
     openaiModerationModel: env("OPENAI_MODERATION_MODEL") ?? "omni-moderation-latest",
     pollIntervalMs: readInteger("POLL_INTERVAL_MS", 60_000, { min: 10_000 }),

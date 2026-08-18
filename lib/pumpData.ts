@@ -181,7 +181,8 @@ function asString(value: unknown) {
   return String(value);
 }
 
-const AUTO_TRADE_QUOTE_API_URL = process.env.AUTO_TRADE_QUOTE_API_URL?.trim()?.replace(/\/$/, "") || "https://quote-api.jup.ag/v6";
+const AUTO_TRADE_QUOTE_API_URL = process.env.AUTO_TRADE_QUOTE_API_URL?.trim()?.replace(/\/$/, "") || "https://api.jup.ag/swap/v1";
+const JUPITER_API_KEY = process.env.JUPITER_API_KEY?.trim();
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 type QuoteResponse = {
@@ -249,9 +250,13 @@ async function fetchCurrentSolValue(tokenMint: string, tokenAmount: number | nul
   quoteUrl.searchParams.set("inputMint", tokenMint);
   quoteUrl.searchParams.set("outputMint", SOL_MINT);
   quoteUrl.searchParams.set("amount", tokenAmountRaw);
-  quoteUrl.searchParams.set("onlyDirectRoutes", "true");
+  quoteUrl.searchParams.set("restrictIntermediateTokens", "true");
+  quoteUrl.searchParams.set("instructionVersion", "V2");
 
-  const response = await fetch(quoteUrl.toString(), { cache: "no-store" });
+  const response = await fetch(quoteUrl.toString(), {
+    cache: "no-store",
+    headers: JUPITER_API_KEY ? { "x-api-key": JUPITER_API_KEY } : undefined
+  });
   if (!response.ok) {
     return null;
   }

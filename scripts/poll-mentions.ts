@@ -30,8 +30,14 @@ async function main() {
     dryRun: config.dryRun,
     llmProvider: config.llmProvider,
     pollIntervalMs: config.pollIntervalMs,
+    autoTradeEnabled: config.autoTradeEnabled,
+    autoTradeReady: config.autoTradeEnabled && !config.autoTradeUnavailableReason,
+    autoTradeUnavailableReason: config.autoTradeUnavailableReason,
     writeAuth: config.xOAuth2UserToken ? "oauth2_user_context" : "oauth1_user_context"
   });
+  if (config.autoTradeUnavailableReason) {
+    console.warn("bot.auto_trade.unavailable", { reason: config.autoTradeUnavailableReason });
+  }
 
   await verifyXCredentials({ verifyWrite: !config.dryRun });
   await verifySupabaseSchema();

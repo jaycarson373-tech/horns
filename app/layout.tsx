@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { ProductFooter } from "@/components/product-footer";
 import { ProductHeader } from "@/components/product-header";
 import { accessIsConfigured } from "@/lib/access";
+import { pumpConfig } from "@/lib/pumpConfig";
 
 import "./site.css";
 
@@ -10,7 +11,7 @@ const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
   || process.env.VERCEL_URL?.trim();
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   || (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
-const botHandle = process.env.NEXT_PUBLIC_BOT_HANDLE?.trim().replace(/^@+/, "");
+const botHandle = pumpConfig.botHandle;
 const title = "PumpXBT | The intelligence agent for Pump.fun";
 const description = "XBT watches Pump.fun markets, tracks callers and onchain flow, and publishes high-quality calls.";
 

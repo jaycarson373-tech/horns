@@ -114,7 +114,7 @@ Tagged replies are supported. When a mention is a reply, the worker loads the pa
 Casual mentions receive casual replies without being pushed to provide a CA. An optional, short operator note can give the agent current context without hardcoding stale claims:
 
 ```env
-PUMPXBT_DAILY_NOTE=Cyber Fleek was today's runner.
+PUMPXBT_DAILY_NOTE=Cyblerleek was today's runner.
 ```
 
 At startup, the worker verifies that `BOT_USERNAME`, `BOT_USER_ID`, the bearer-token lookup, and the authenticated write account all resolve to the same X identity. Mentions recorded during dry run are retried once `DRY_RUN=false`; completed replies remain idempotent.

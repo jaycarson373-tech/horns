@@ -1,182 +1,95 @@
-import Image from "next/image";
-import { cookies } from "next/headers";
+import Link from "next/link";
 
-import { AccessPanel } from "@/components/access-panel";
+import { CallerTable } from "@/components/caller-table";
+import { MarketTerminal } from "@/components/market-terminal";
+import { SectionHeading } from "@/components/section-heading";
+import { SignalBoard } from "@/components/signal-board";
 import { TokenActions } from "@/components/token-actions";
-import { ACCESS_COOKIE, accessIsConfigured, formatTokenBalance, parseAccessToken } from "@/lib/access";
 import { pumpConfig } from "@/lib/pumpConfig";
-import { readTerminalData, type PumpSignal, type PumpToken, type WalletEvent } from "@/lib/pumpData";
+import { readCalloutEngineData, readTerminalData } from "@/lib/pumpData";
+import {
+  buildMarketRows,
+  buildWalletClusters,
+  buildXbtReads,
+  formatPercent,
+  formatUsd,
+  relativeTime,
+  tokenName
+} from "@/lib/pumpPresentation";
 
 export const dynamic = "force-dynamic";
 
-function money(value: number | null) {
-  if (value == null) return "--";
-  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-  if (value >= 1) return `$${value.toFixed(2)}`;
-  return `$${value.toPrecision(3)}`;
-}
-
-function percent(value: number | null) {
-  if (value == null) return <span className="muted">--</span>;
-  return <span className={value >= 0 ? "positive" : "negative"}>{value >= 0 ? "+" : ""}{value.toFixed(1)}%</span>;
-}
-
-function relativeTime(value: string | null) {
-  if (!value) return "NO VERIFIED UPDATE";
-  const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 1000));
-  if (seconds < 60) return "JUST NOW";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}M AGO`;
-  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}H AGO`;
-  return `${Math.floor(seconds / 86_400)}D AGO`;
-}
-
-function relation<T>(value: T | T[] | null | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function tokenName(token: PumpToken) {
-  return token.symbol ? `$${token.symbol.toUpperCase()}` : `${token.mint.slice(0, 4)}...${token.mint.slice(-4)}`;
-}
-
-function compactInteger(value: number) {
-  if (value >= 1_000_000) return `${value / 1_000_000}M`;
-  if (value >= 1_000) return `${value / 1_000}K`;
-  return value.toLocaleString("en-US");
-}
-
-function SignalRow({ signal }: { signal: PumpSignal }) {
-  const token = relation(signal.token);
-  return (
-    <article className="signal-row">
-      <div><span className={`signal-kind ${signal.signal_type}`}>{signal.signal_type === "high_conviction" ? "HIGH CONVICTION" : "WATCH"}</span><time>{relativeTime(signal.published_at)}</time></div>
-      <h3>{token?.symbol ? `$${token.symbol}` : `${signal.token_mint.slice(0, 5)}...${signal.token_mint.slice(-4)}`}</h3>
-      <p>{signal.thesis}</p>
-      <footer><span>CONF {signal.confidence}/100</span><span>STATUS {signal.status.toUpperCase()}</span></footer>
-    </article>
-  );
-}
-
-function WalletEventRow({ event }: { event: WalletEvent }) {
-  const wallet = relation(event.wallet);
-  const token = relation(event.token);
-  return (
-    <li>
-      <span className={`flow-direction ${event.direction}`}>{event.direction.toUpperCase()}</span>
-      <div><strong>{wallet?.label || `${event.wallet_address.slice(0, 4)}...${event.wallet_address.slice(-4)}`}</strong><small>{wallet?.category?.replaceAll("_", " ") || "public wallet"}</small></div>
-      <div><strong>{token?.symbol ? `$${token.symbol}` : `${event.token_mint.slice(0, 4)}...`}</strong><small>{event.token_amount == null ? "amount unavailable" : event.token_amount.toLocaleString("en-US", { maximumFractionDigits: 3 })}</small></div>
-      <a href={`https://solscan.io/tx/${event.signature}`} target="_blank" rel="noreferrer">↗</a>
-    </li>
-  );
-}
-
-export default async function Home() {
-  const cookieStore = await cookies();
-  const session = parseAccessToken(cookieStore.get(ACCESS_COOKIE)?.value);
-  const premium = Boolean(session);
-  const data = await readTerminalData(premium);
+export default async function HomePage() {
+  const [data, engine] = await Promise.all([readTerminalData(), readCalloutEngineData({ limit: 120 })]);
+  const rows = buildMarketRows(data, engine);
+  const reads = buildXbtReads(data, engine);
+  const clusters = buildWalletClusters(data.walletEvents);
   const tokenMint = pumpConfig.tokenMint || pumpConfig.publicTokenMint;
-  const botHandle = pumpConfig.botHandle;
-  const buyUrl = process.env.NEXT_PUBLIC_BUY_URL?.trim()
-    || (tokenMint ? `https://jup.ag/?sell=So11111111111111111111111111111111111111112&buy=${encodeURIComponent(tokenMint)}` : "");
-  const dataStale = data.updatedAt ? Date.now() - Date.parse(data.updatedAt) > 20 * 60_000 : false;
+  const buyUrl = process.env.NEXT_PUBLIC_BUY_URL?.trim() || (tokenMint ? `https://jup.ag/?sell=So11111111111111111111111111111111111111112&buy=${encodeURIComponent(tokenMint)}` : "");
 
   return (
-    <div className="terminal-shell">
-      <header className="terminal-header">
-        <a className="brand" href="#terminal" aria-label="PumpXBT terminal">
-          <Image src="/pumpxbt-mark.png" alt="" width={46} height={46} priority />
-          <span>PUMP<b>XBT</b></span>
-        </a>
-        <div className="header-feed"><span className={`status-dot ${data.connected ? "live" : ""}`} />{data.connected ? "DATA LINK ACTIVE" : "DATA LINK OFFLINE"}<i />PUMP TOKENS ONLY</div>
-        <div className="header-actions">
-          <a href="/docs">DOCS</a>
-          {botHandle ? <a href={`https://x.com/${botHandle}`} target="_blank" rel="noreferrer">@{botHandle}</a> : null}
-          <a href="#access" className="unlock-link">{premium ? "PRO ACTIVE" : "UNLOCK PRO"}</a>
+    <main>
+      <section className="compact-hero page-width">
+        <div className="hero-message">
+          <span className="live-label"><i className={data.connected ? "live" : ""} />PUMPXBT / LIVE INTELLIGENCE</span>
+          <h1>PUMP<span>XBT</span></h1>
+          <h2>THE INTELLIGENCE LAYER FOR PUMP.FUN</h2>
+          <p>Track the best callers. Watch smart-money flow. Find what’s moving before the timeline does.</p>
+          <div className="button-row"><Link className="primary-button" href="/terminal">OPEN TERMINAL</Link><Link className="secondary-button" href="/signals">VIEW SIGNALS</Link></div>
         </div>
-      </header>
+        <div className="hero-preview" aria-label="Live PumpXBT market preview">
+          <header><span>XBT MARKET WATCH</span><small>{data.updatedAt ? `UPDATED ${relativeTime(data.updatedAt).toUpperCase()} AGO` : "AWAITING SYNC"}</small></header>
+          <div className="preview-head"><span>ASSET</span><span>1H</span><span>FLOW</span><span>SCORE</span></div>
+          {rows.slice(0, 5).map((token) => <a key={token.mint} href={token.dex_url || `https://solscan.io/token/${token.mint}`} target="_blank" rel="noreferrer"><span className="preview-token"><i>{token.symbol?.slice(0, 1) || "•"}</i><strong>{tokenName(token)}</strong></span><span className={(token.price_change_1h ?? 0) >= 0 ? "positive" : "negative"}>{formatPercent(token.price_change_1h)}</span><span>{token.smartWallets ? `${token.smartWallets}W / ${token.callers}C` : "--"}</span><strong>{token.score?.toFixed(0) ?? "--"}</strong></a>)}
+          {rows.length === 0 ? <div className="preview-empty"><span /><span /><span /><small>Market feed awaiting first indexed snapshot.</small></div> : null}
+          <footer><span>VOLUME</span><strong>{formatUsd(rows.reduce((sum, token) => sum + (token.volume_1h_usd ?? 0), 0))}</strong><span>TRACKED</span><strong>{data.stats.trackedMarkets ?? "--"}</strong></footer>
+        </div>
+      </section>
 
-      <div className="terminal-layout">
-        <nav className="terminal-rail" aria-label="Terminal sections">
-          <a href="#terminal" title="Markets">MKT</a><a href="#signals" title="Signals">SIG</a><a href="#wallets" title="Wallet flow">WAL</a><a href="#policy" title="Treasury policy">TRY</a>
-          <span className="rail-version">V0.1</span>
-        </nav>
+      <div className="tape"><div><span>PUMP.FUN MARKET STATUS</span><strong>{data.connected ? "ONLINE" : "DELAYED"}</strong><span>ACTIVE SIGNALS</span><strong>{data.stats.activeSignals ?? "--"}</strong><span>SMART WALLETS</span><strong>{data.stats.trackedWallets ?? "--"}</strong><span>CALLOUTS INDEXED</span><strong>{engine.trades.length}</strong><span>LAST UPDATE</span><strong>{relativeTime(data.updatedAt)}</strong></div></div>
 
-        <main id="terminal">
-          <section className="terminal-titlebar">
-            <div><p className="eyebrow"><span>AGENT 01</span> SOLANA PUMP INTELLIGENCE</p><h1>MARKET STRUCTURE.<br /><b>WITHOUT THE NOISE.</b></h1></div>
-            <div className="asof"><span>LAST INDEX</span><strong>{relativeTime(data.updatedAt)}</strong>{dataStale ? <em>DELAYED</em> : null}</div>
-          </section>
+      <section className="product-section page-width" id="terminal">
+        <SectionHeading eyebrow="01 / LIVE MARKET TERMINAL" title="PUMP.FUN, RANKED BY SIGNAL" description="Liquidity, momentum, smart-wallet activity, caller convergence, and XBT score." href="/terminal" linkLabel="FULL TERMINAL" />
+        <MarketTerminal rows={rows} compact />
+      </section>
 
-          <p className="hero-intro">Track verified Pump.fun calls, cluster flow, and on-chain treasury outcomes in one live terminal.</p>
+      <section className="product-section page-width" id="signals">
+        <SectionHeading eyebrow="02 / XBT SIGNALS" title="SIGNALS, NOT NOISE" description="Reviewed setups backed by live market evidence." href="/signals" linkLabel="ALL SIGNALS" />
+        <SignalBoard signals={data.signals} limit={4} />
+      </section>
 
-          {tokenMint && buyUrl ? <TokenActions mint={tokenMint} buyUrl={buyUrl} /> : null}
-
-          <section className="stat-strip" aria-label="Terminal statistics">
-            <div><span>INDEXED MARKETS</span><strong>{data.stats.trackedMarkets ?? "--"}</strong></div>
-            <div><span>ACTIVE SIGNALS</span><strong>{data.stats.activeSignals ?? "--"}</strong></div>
-            <div><span>TRACKED WALLETS</span><strong>{premium ? data.stats.trackedWallets ?? "--" : "LOCKED"}</strong></div>
-            <div><span>24H FLOW EVENTS</span><strong>{premium ? data.stats.walletEvents24h ?? "--" : "LOCKED"}</strong></div>
-          </section>
-
-          <section className="market-panel terminal-panel" aria-labelledby="market-title">
-            <div className="panel-heading"><div><span>01 / LIVE INDEX</span><h2 id="market-title">PUMP MARKET TAPE</h2></div><p>DEXSCREENER SOURCE · SOLANA</p></div>
-            <div className="table-scroll">
-              <table>
-                <thead><tr><th>ASSET</th><th>PRICE</th><th>MCAP</th><th>LIQ</th><th>VOL 1H</th><th>1H</th><th>B / S</th><th>SCORE</th><th>RISK</th></tr></thead>
-                <tbody>
-                  {data.tokens.length ? data.tokens.map((token) => (
-                    <tr key={token.mint}>
-                      <td><a href={token.dex_url || `https://solscan.io/token/${token.mint}`} target="_blank" rel="noreferrer"><strong>{tokenName(token)}</strong><small>{token.name || `${token.mint.slice(0, 6)}...${token.mint.slice(-4)}`}</small></a></td>
-                      <td>{money(token.price_usd)}</td><td>{money(token.market_cap_usd)}</td><td>{money(token.liquidity_usd)}</td><td>{money(token.volume_1h_usd)}</td>
-                      <td>{percent(token.price_change_1h)}</td><td>{token.buys_1h ?? "--"} / {token.sells_1h ?? "--"}</td><td><b className="score">{token.score ?? "--"}</b></td>
-                      <td>{token.risk_flags.length ? <span className="risk">{token.risk_flags.length} FLAG{token.risk_flags.length === 1 ? "" : "S"}</span> : <span className="clear">CLEAR</span>}</td>
-                    </tr>
-                  )) : <tr className="empty-row"><td colSpan={9}>{data.error || "No verified pump markets indexed yet."}</td></tr>}
-                </tbody>
-              </table>
-            </div>
-            <p className="method-note">Score ranks liquidity, volume, activity, flow balance, and short-term volatility. It is not a trade recommendation.</p>
-          </section>
-
-          <div className="analysis-grid">
-            <section className="terminal-panel signals-panel" id="signals" aria-labelledby="signal-title">
-              <div className="panel-heading"><div><span>02 / ANALYST DESK</span><h2 id="signal-title">SIGNAL ENGINE</h2></div><p>{premium ? "PRO FEED" : "PUBLIC FEED"}</p></div>
-              <div className="signal-list">{data.signals.length ? data.signals.map((signal) => <SignalRow key={signal.id} signal={signal} />) : <div className="honest-empty"><strong>NO HIGH-CONVICTION SETUP.</strong><span>The desk does not force a call.</span></div>}</div>
-            </section>
-
-            <section className="terminal-panel wallet-panel" id="wallets" aria-labelledby="wallet-title">
-              <div className="panel-heading"><div><span>03 / PUBLIC ON-CHAIN</span><h2 id="wallet-title">WALLET CLUSTER FLOW</h2></div><p>HELIUS INDEXED</p></div>
-              {premium ? <ul className="wallet-list">{data.walletEvents.length ? data.walletEvents.map((event) => <WalletEventRow key={event.id} event={event} />) : <li className="honest-empty"><strong>NO VERIFIED FLOW EVENTS.</strong><span>Tracked wallets are manually curated.</span></li>}</ul> : <div className="locked-state"><span>{compactInteger(pumpConfig.accessThresholdTokens)}</span><strong>PRO ACCESS REQUIRED</strong><p>Wallet labels, cluster movement, and premium signal detail are holder-gated.</p><a href="#access">VERIFY HOLDINGS</a></div>}
-            </section>
+      <section className="product-section page-width dual-section">
+        <div>
+          <SectionHeading eyebrow="03 / TOP CALLERS" title="KNOW WHO ACTUALLY MAKES GOOD CALLS" href="/callers" linkLabel="LEADERBOARD" />
+          <CallerTable callers={engine.callers} compact />
+        </div>
+        <div>
+          <SectionHeading eyebrow="04 / SMART MONEY" title="TRACK THE WALLETS THAT MATTER" href="/wallets" linkLabel="WALLET FEED" />
+          <div className="wallet-cluster-feed">
+            {clusters.slice(0, 7).map((cluster) => <Link key={cluster.tokenMint} href={`/terminal?q=${encodeURIComponent(cluster.tokenMint)}`}><span><i className="flow-dot" /><strong>{cluster.walletCount} tracked wallet{cluster.walletCount === 1 ? "" : "s"}</strong> active in {cluster.token}</span><small>{cluster.buyCount} buys · {relativeTime(cluster.latest)} ago</small></Link>)}
+            {clusters.length === 0 ? <div className="product-empty">Wallet activity appears after Helius confirms tracked flows.</div> : null}
           </div>
+        </div>
+      </section>
 
-          <section className="terminal-panel policy-panel" id="policy" aria-labelledby="policy-title">
-            <div className="panel-heading"><div><span>04 / TREASURY MANDATE</span><h2 id="policy-title">FEES → PLAYS.<br />PROFITS → BURN.</h2></div><p>READ-ONLY BUILD</p></div>
-            <div className="policy-grid">
-              <article><span>01</span><h3>100% CALLOUT PROFIT</h3><p>Every realized callout profit is used for transparent buybacks and burns only.</p></article>
-              <article><span>02</span><h3>CALLOUT SOURCE</h3><p>Signals are based on Pump.fun callouts from verified callers with demonstrated high win-rate and public consistency.</p></article>
-              <article><span>03</span><h3>AI RANKING GATE</h3><p>An AI ranker scores verified callers for freshness, signal quality, execution history, and risk alignment before any public action is considered.</p></article>
-            </div>
-            <div className="receipt-ledger">
-              <h3>VERIFIED TREASURY LEDGER</h3>
-              {data.treasuryEvents.length ? <ul>{data.treasuryEvents.map((event) => <li key={event.signature}><time>{new Date(event.block_time).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</time><strong>{event.event_type.replaceAll("_", " ").toUpperCase()}</strong><span>{event.amount.toLocaleString("en-US", { maximumFractionDigits: 9 })} {event.token}</span><a href={`https://solscan.io/tx/${event.signature}`} target="_blank" rel="noreferrer">TX ↗</a></li>)}</ul> : <p>No verified treasury transactions published yet.</p>}
-            </div>
-          </section>
+      <section className="product-section xbt-section" id="xbt">
+        <div className="page-width">
+          <SectionHeading eyebrow="05 / XBT ANALYST" title="THE MARKET READ" description="A continuous intelligence feed built from Pump.fun market structure, wallets, callers, and momentum." href="/xbt" linkLabel="OPEN XBT" />
+          <div className="xbt-read-grid">
+            {reads.slice(0, 4).map((read) => <article key={`${read.label}-${read.headline}`}><header><span>{read.label}</span><i>LIVE</i></header><h3>{read.headline}</h3><p>{read.detail}</p><footer>{read.tokens.map((token) => <span key={token}>{token}</span>)}</footer></article>)}
+            {reads.length === 0 ? <div className="product-empty">XBT market reads publish after the first verified market snapshot.</div> : null}
+          </div>
+        </div>
+      </section>
 
-          {botHandle ? <section className="bot-strip" aria-label="PumpXBT X agent"><div><span>05 / X AGENT</span><h2>ONE MINT.<br />ONE VERDICT.</h2></div><a href={`https://x.com/${botHandle}`} target="_blank" rel="noreferrer">OPEN @{botHandle} ↗</a></section> : null}
-        </main>
+      <section className="product-section page-width flywheel-section" id="treasury">
+        <SectionHeading eyebrow="06 / TREASURY" title="THE PUMPXBT FLYWHEEL" href="/treasury" linkLabel="VIEW TREASURY" />
+        <div className="flywheel"><strong>FEES</strong><span>→</span><strong>PLAYS</strong><span>→</span><strong>PROFITS</strong><span>→</span><strong>BURN</strong></div>
+        <div className="flywheel-copy"><p>A portion of PumpXBT fees funds the treasury.</p><p>The treasury takes positions based on PumpXBT intelligence.</p><p>Profits buy back and burn $PUMPXBT.</p></div>
+        {tokenMint && buyUrl ? <TokenActions mint={tokenMint} buyUrl={buyUrl} /> : null}
+      </section>
 
-        <aside className="terminal-aside">
-          <AccessPanel configured={accessIsConfigured()} threshold={pumpConfig.accessThresholdTokens} session={session ? { wallet: session.wallet, verifiedBalance: formatTokenBalance(session.balanceRaw, session.decimals) } : null} />
-          <section className="side-panel"><div className="panel-label"><span>RULESET</span><b>02</b></div><ul><li><span>UNIVERSE</span><strong>PUMP TOKENS</strong></li><li><span>CALL FILTER</span><strong>MANUAL APPROVAL</strong></li><li><span>MIN CONFIDENCE</span><strong>{pumpConfig.highConvictionMinScore}/100</strong></li><li><span>DATA</span><strong>PUBLIC SOURCES</strong></li></ul></section>
-          <section className="side-panel disclosure"><div className="panel-label"><span>DISCLOSURE</span><b>03</b></div><p>Analytics are informational. Wallet labels are based on public activity and do not imply inside information. Digital assets are high risk.</p></section>
-          <Image className="aside-mark" src="/pumpxbt-mark.png" alt="PumpXBT analyst mark" width={280} height={280} />
-        </aside>
-      </div>
-
-      <footer><span>PUMPXBT / PUBLIC DATA INTELLIGENCE</span><span>NO CUSTODY · NO AUTOTRADING · NO GUARANTEED RETURNS</span></footer>
-    </div>
+      <section className="bottom-cta"><div className="page-width"><p>SEE PUMP.FUN BEFORE THE TIMELINE DOES.</p><Link className="primary-button" href="/terminal">OPEN PUMPXBT</Link></div></section>
+    </main>
   );
 }

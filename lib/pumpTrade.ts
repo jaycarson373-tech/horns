@@ -69,6 +69,11 @@ function parseSecretKey(value: string): Keypair {
   return Keypair.fromSecretKey(decoded);
 }
 
+export function getAutoTradeWalletAddress() {
+  const secret = getConfig().autoTradePrivateKey;
+  return secret ? parseSecretKey(secret).publicKey.toBase58() : null;
+}
+
 function asTradeCandidate(text: string): Promise<CalloutResolution> {
   return resolveCalloutToken(text);
 }

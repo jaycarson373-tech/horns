@@ -8,6 +8,7 @@ import { getConfig } from "../lib/config";
 import { runBotOnce } from "../lib/queue";
 import { verifySupabaseSchema } from "../lib/supabase";
 import { verifyXCredentials } from "../lib/x";
+import { syncTradeWalletOnce } from "../lib/tradeWalletSync";
 
 let stopping = false;
 
@@ -45,6 +46,11 @@ async function main() {
   do {
     try {
       await runBotOnce("worker");
+      try {
+        await syncTradeWalletOnce();
+      } catch (error) {
+        console.error("pumpxbt.trade_wallet.sync_failed", error);
+      }
       await runVerifiedAutoPostOnce();
     } catch (error) {
       console.error(`${config.botProjectKey}.poll.failed`, error);

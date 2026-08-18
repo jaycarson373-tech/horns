@@ -65,7 +65,11 @@ AUTO_TRADE_QUOTE_API_URL=https://api.jup.ag/swap/v1
 JUPITER_API_KEY=YOUR_JUPITER_API_KEY
 AUTO_TRADE_PRIVATE_KEY=... # Railway worker only; or TRADER_SECRET_KEY
 AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER=0
+TRADE_WALLET_SYNC_ENABLED=true
+HELIUS_API_KEY=YOUR_HELIUS_API_KEY
 ```
+
+When wallet sync is enabled, the worker reads confirmed swaps made manually from the configured trading wallet and writes them to the same `pump_trades` ledger as automatic executions. Helius is read-only here; signing remains inside the wallet or Railway worker.
 
 ## Where Secrets Go
 
@@ -107,6 +111,12 @@ Direct-mint callouts are the deterministic path. Cashtags are accepted only when
 
 Tagged replies are supported. When a mention is a reply, the worker loads the parent tweet and passes both messages to the configured text model so PumpXBT can answer the actual question in context. Set `OPENAI_API_KEY` plus `OPENAI_TEXT_MODEL` (default `gpt-5.4-nano`), or use the Claude variables. `MAX_USER_REPLIES_PER_HOUR` defaults to `10` to support short conversations while retaining spam protection.
 
+Casual mentions receive casual replies without being pushed to provide a CA. An optional, short operator note can give the agent current context without hardcoding stale claims:
+
+```env
+PUMPXBT_DAILY_NOTE=Cyber Fleek was today's runner.
+```
+
 At startup, the worker verifies that `BOT_USERNAME`, `BOT_USER_ID`, the bearer-token lookup, and the authenticated write account all resolve to the same X identity. Mentions recorded during dry run are retried once `DRY_RUN=false`; completed replies remain idempotent.
 
 The same worker can publish verified state changes from Supabase. It posts approved active signals, confirmed trade entries, realized-profit records, buybacks, and burns at most once per source event. It does not publish idle filler or unverified PnL.
@@ -133,6 +143,14 @@ curl -s "https://api.x.com/2/users/by/username/YOUR_BOT_USERNAME" \
 `/api/cron/market` runs every ten minutes. It discovers Solana addresses ending in the configured Pump suffix, refreshes their strongest-liquidity pair, calculates a deterministic screening score, and inserts candidates only when all configured thresholds pass.
 
 The current implementation never auto-promotes candidates. Review source liquidity, token concentration, contract behavior, and invalidation before creating an active `pump_signals` row. The public UI never displays drafts or unpublished rows.
+
+Publish an operator-reviewed callout into the same signal feed used by the site and auto-poster:
+
+```bash
+npm run callout -- TOKEN_MINT "Short verified thesis" 85
+```
+
+The final argument is confidence from 0 to 100. This records the callout; it does not execute a trade. With `X_AUTO_POST_ENABLED=true`, the worker can publish the verified signal once through the deduplicated publication queue.
 
 Tracked addresses are operator-curated rows in `tracked_wallets`. Their activity is labeled public wallet-cluster movement, not insider activity. Add only addresses with a documented public rationale.
 
@@ -183,6 +201,6 @@ Optional Claude tuning:
 - `LLM_TEMPERATURE` (default `0.1`)
 - `LLM_MAX_TOKENS` (default `240`)
 
-To execute trades, also set `AUTO_TRADE_ENABLED=true`, `AUTO_TRADE_PRIVATE_KEY` (or `TRADER_SECRET_KEY`), and `AUTO_TRADE_RPC_URL`.
+To execute trades, also set `AUTO_TRADE_ENABLED=true`, `AUTO_TRADE_PRIVATE_KEY` (or `TRADER_SECRET_KEY`), and `AUTO_TRADE_RPC_URL`. To index manual swaps from that same wallet, set `TRADE_WALLET_SYNC_ENABLED=true` and `HELIUS_API_KEY` on Railway.
 
 Optional: `NEXT_PUBLIC_BOT_HANDLE`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BUY_URL`, `NEXT_PUBLIC_PUMP_FUN_TOKEN_URL`, `X_OAUTH2_USER_TOKEN`, `X_AUTO_POST_ENABLED`, and all threshold/rate-limit tuning variables shown in `.env.example`.

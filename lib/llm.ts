@@ -44,6 +44,7 @@ function buildReplyPrompt(rawText: string, grounding: string, context?: ReplyCon
     "Reply rules:",
     "- Never exceed 280 characters.",
     "- Answer the user's actual question immediately. Do not ignore a question just because no token was supplied.",
+    "- For greetings and casual conversation, reply naturally. Do not ask for a mint unless the user asks for a token read.",
     "- Use a concise, confident, technical voice with a little personality.",
     "- Use the parent tweet to resolve what the user is replying to when parent context exists.",
     "- Treat the PumpXBT grounding below as the only source of live token metrics.",
@@ -155,7 +156,7 @@ async function generateReplyWithClaude(prompt: string) {
 
 export async function generateReplyText(rawText: string, context?: ReplyContext) {
   const config = getConfig();
-  let grounding = "PumpXBT is watching Pump.fun. Send one token mint or $TICKER for a verified market read.";
+  let grounding = "PumpXBT is online and watching Pump.fun. Keep casual conversation natural; a mint is only needed for a token-specific read.";
 
   try {
     grounding = await buildPumpXbtReply(rawText);
@@ -164,6 +165,7 @@ export async function generateReplyText(rawText: string, context?: ReplyContext)
       reason: error instanceof Error ? error.message : String(error)
     });
   }
+  if (config.pumpXbtDailyNote) grounding += ` Operator note: ${config.pumpXbtDailyNote.slice(0, 180)}`;
 
   const prompt = buildReplyPrompt(rawText, grounding, context);
 

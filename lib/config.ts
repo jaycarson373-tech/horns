@@ -214,8 +214,15 @@ export function getConfig(): AppConfig {
 
   const autoTradeEnabled = readBoolean("AUTO_TRADE_ENABLED", false);
   const autoTradePrivateKey = env("AUTO_TRADE_PRIVATE_KEY") || env("TRADER_SECRET_KEY");
+  const configuredAutoTradeRpcUrl = env("AUTO_TRADE_RPC_URL");
+  const heliusApiKey = env("HELIUS_API_KEY");
+  const autoTradeRpcUrl = configuredAutoTradeRpcUrl
+    ?? (heliusApiKey ? `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(heliusApiKey)}` : "");
   if (autoTradeEnabled && !dryRun && !autoTradePrivateKey) {
     throw new Error("AUTO_TRADE_PRIVATE_KEY (or TRADER_SECRET_KEY) is required when AUTO_TRADE_ENABLED=true and DRY_RUN=false");
+  }
+  if (autoTradeEnabled && !dryRun && !autoTradeRpcUrl) {
+    throw new Error("AUTO_TRADE_RPC_URL or HELIUS_API_KEY is required when AUTO_TRADE_ENABLED=true and DRY_RUN=false");
   }
 
   return {
@@ -269,7 +276,7 @@ export function getConfig(): AppConfig {
     autoTradeFollowerThreshold: readInteger("AUTO_TRADE_FOLLOWER_THRESHOLD", 50, { min: 0 }),
     autoTradeSolMint: env("AUTO_TRADE_SOL_MINT") ?? "So11111111111111111111111111111111111111112",
     autoTradeSlippageBps: readInteger("AUTO_TRADE_SLIPPAGE_BPS", 80, { min: 1, max: 1000 }),
-    autoTradeRpcUrl: env("AUTO_TRADE_RPC_URL") ?? `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(required("HELIUS_API_KEY"))}`,
+    autoTradeRpcUrl,
     autoTradeQuoteApiUrl: env("AUTO_TRADE_QUOTE_API_URL") ?? "https://quote-api.jup.ag/v6",
     autoTradePrivateKey,
     autoTradeMaxConsecutivePerCaller: readInteger("AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER", 8, { min: 0 })

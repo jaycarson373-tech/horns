@@ -8,6 +8,7 @@ import {
 } from "./supabase";
 import {
   fetchRecentMentions,
+  fetchTweetTextById,
   fetchUserById,
   isDirectMention,
   replyToMentionWithText,
@@ -131,7 +132,20 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
       }
     }
 
-    const replyText = await generateReplyText(mention.text);
+    let referencedText: string | null = null;
+    if (mention.referenced_tweet_id) {
+      try {
+        referencedText = await fetchTweetTextById(mention.referenced_tweet_id);
+      } catch (error) {
+        console.warn(eventName("mention.parent_context_failed"), {
+          mentionId: mention.id,
+          referencedTweetId: mention.referenced_tweet_id,
+          error: safeErrorMessage(error)
+        });
+      }
+    }
+
+    const replyText = await generateReplyText(mention.text, { referencedText });
     if (config.dryRun) {
       await updateProcessedMention(mention.id, { status: "dry_run", error: null });
       if (followerThresholdEnabled) {

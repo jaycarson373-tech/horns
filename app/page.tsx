@@ -3,7 +3,8 @@ import Link from "next/link";
 import { TokenActions } from "@/components/token-actions";
 import { pumpConfig } from "@/lib/pumpConfig";
 import { readTerminalData, type PumpSignal, type TreasuryEvent } from "@/lib/pumpData";
-import { formatUsd, relativeTime, shortAddress, signalCategory } from "@/lib/pumpPresentation";
+import { formatSol, formatUsd, relativeTime, shortAddress, signalCategory } from "@/lib/pumpPresentation";
+import { readProjectMetrics } from "@/lib/projectMetrics";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ function formatTokenAmount(value: number) {
 }
 
 export default async function HomePage() {
-  const data = await readTerminalData();
+  const [data, projectMetrics] = await Promise.all([readTerminalData(), readProjectMetrics()]);
   const botHandle = pumpConfig.botHandle;
   const tokenMint = pumpConfig.tokenMint || pumpConfig.publicTokenMint;
   const buyUrl = process.env.NEXT_PUBLIC_BUY_URL?.trim()
@@ -80,6 +81,15 @@ export default async function HomePage() {
             {botHandle ? <a className="primary-button" href={`https://x.com/${botHandle}`} target="_blank" rel="noreferrer">FOLLOW XBT ON X</a> : <Link className="primary-button" href="/xbt">MEET XBT</Link>}
             <Link className="secondary-button" href="/signals">VIEW LIVE CALLS</Link>
           </div>
+        </div>
+      </section>
+
+      <section className="home-live-metrics" aria-label="Verified PumpXBT metrics">
+        <div className="page-width">
+          <article><span>$PUMPXBT PRICE</span><strong>{formatUsd(projectMetrics.priceUsd ?? data.projectToken?.price_usd ?? null)}</strong><small>DEX MARKET</small></article>
+          <article><span>CREATOR / TRADING WALLET</span><strong>{formatSol(projectMetrics.creatorWalletSol)}</strong>{projectMetrics.creatorWallet ? <a href={`https://solscan.io/account/${projectMetrics.creatorWallet}`} target="_blank" rel="noreferrer">{shortAddress(projectMetrics.creatorWallet)} ↗</a> : <small>ADD WALLET IN VERCEL</small>}</article>
+          <article><span>VERIFIED REALIZED PROFIT</span><strong>{formatUsd(realizedProfitUsd)}</strong><small>TREASURY LEDGER</small></article>
+          <article><span>TOTAL $PUMPXBT BUYBACKS</span><strong>{boughtBack == null ? "--" : formatTokenAmount(boughtBack)}</strong><small>CONFIRMED EVENTS</small></article>
         </div>
       </section>
 

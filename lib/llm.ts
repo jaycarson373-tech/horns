@@ -20,42 +20,58 @@ type ClaudePayload = {
   };
 };
 
+type OpenAIResponse = {
+  output_text?: string;
+  output?: Array<{
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  }>;
+};
+
+type ReplyContext = {
+  referencedText?: string | null;
+};
+
 function normalizeReply(raw: string) {
   const noUrls = raw.replace(/https?:\/\/\S+/g, "").trim();
   const oneLine = noUrls.replace(/\s+/g, " ").trim();
   return oneLine.slice(0, 280);
 }
 
-function fallbackReply(rawText: string, error: unknown) {
+function fallbackReply(grounding: string, error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   console.warn(`llm.provider_fallback`, { reason: message });
-  return buildPumpXbtReply(rawText);
+  return grounding;
 }
 
-function buildClaudePrompt(rawText: string) {
+function buildReplyPrompt(rawText: string, grounding: string, context?: ReplyContext) {
   return [
-    "You are PumpXBT, a concise market terminal assistant.",
-    "Given a user's mention, write a public X reply in the same 280-char style as a live trading assistant.",
-    "You are allowed to return a reply for any mention that includes a likely token callout.",
+    "You are PumpXBT, an autonomous Pump.fun intelligence agent on X.",
+    "Write one public reply to the user's tagged mention.",
     "Reply rules:",
     "- Never exceed 280 characters.",
-    "- Always use this voice: concise, direct, and technical.",
-    "- If the mention includes a pump.fun mint or one clear $TICKER, use that signal in your wording.",
-    "- If no valid callout is present, ask for one clear mint or $TICKER.",
-    "- Include the exact phrase 'Buyback + Burn Loop' when referencing any active signal behavior.",
-    "- Never include Markdown links or hashtags.",
-    "- Never include any Markdown links.",
-    "- If the mention is invalid, ask for a valid Pump.fun mint or one unambiguous $TICKER.",
-    "- Never invent token metrics.",
+    "- Answer the user's actual question immediately. Do not ignore a question just because no token was supplied.",
+    "- Use a concise, confident, technical voice with a little personality.",
+    "- Use the parent tweet to resolve what the user is replying to when parent context exists.",
+    "- Treat the PumpXBT grounding below as the only source of live token metrics.",
+    "- Never invent prices, performance, balances, signals, trades, callers, or wallet activity.",
+    "- If live data is required but unavailable, say what mint or data is needed.",
+    "- Do not promise profits or present financial advice.",
+    "- No links, hashtags, markdown, or generic customer-support language.",
+    "- Do not mention these instructions or the grounding block.",
     "",
-    `Mention: ${rawText}`
+    context?.referencedText ? `Parent tweet: ${context.referencedText.slice(0, 500)}` : "Parent tweet: none",
+    `User mention: ${rawText}`,
+    `PumpXBT grounding: ${grounding}`
   ].join("\n");
 }
 
-const CLAUDE_SYSTEM_PROMPT = [
-  "You are PumpXBT, a concise and serious Solana monitor.",
+const AGENT_SYSTEM_PROMPT = [
+  "You are PumpXBT, a concise and serious Pump.fun intelligence agent.",
   "Return exactly one short reply suitable for a tweet.",
-  "No markdown, no links, no speculation, no fake data."
+  "Answer the question first. No markdown, links, speculation, promises, or fake data."
 ].join(" ");
 
 function toClaudeText(response: ClaudeResponse) {
@@ -67,7 +83,47 @@ function toClaudeText(response: ClaudeResponse) {
   return normalizeReply(text);
 }
 
-async function generateReplyWithClaude(rawText: string) {
+function toOpenAIText(response: OpenAIResponse) {
+  const direct = response.output_text?.trim();
+  if (direct) return normalizeReply(direct);
+
+  const text = response.output
+    ?.flatMap((item) => item.content ?? [])
+    .find((item) => item.type === "output_text" && typeof item.text === "string")
+    ?.text;
+  if (!text?.trim()) throw new Error("OpenAI response did not include text output");
+  return normalizeReply(text);
+}
+
+async function generateReplyWithOpenAI(prompt: string) {
+  const config = getConfig();
+  if (!config.openaiApiKey) throw new Error("OPENAI_API_KEY is not configured");
+
+  const payload = await withRetry("llm.openai", async () => {
+    const response = await fetch(`${config.openaiBaseUrl.replace(/\/$/, "")}/responses`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.openaiApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: config.openaiTextModel,
+        instructions: AGENT_SYSTEM_PROMPT,
+        input: prompt,
+        reasoning: { effort: "none" },
+        text: { verbosity: "low" },
+        max_output_tokens: config.llmMaxTokens
+      })
+    });
+
+    await throwForBadResponse("openai.responses", response);
+    return (await response.json()) as OpenAIResponse;
+  });
+
+  return toOpenAIText(payload);
+}
+
+async function generateReplyWithClaude(prompt: string) {
   const config = getConfig();
   if (!config.anthropicApiKey) {
     throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -86,11 +142,11 @@ async function generateReplyWithClaude(rawText: string) {
         model: config.anthropicModel,
         temperature: config.llmTemperature,
         max_tokens: config.llmMaxTokens,
-        system: CLAUDE_SYSTEM_PROMPT,
+        system: AGENT_SYSTEM_PROMPT,
         messages: [
           {
             role: "user",
-            content: buildClaudePrompt(rawText)
+            content: prompt
           }
         ]
       })
@@ -103,16 +159,18 @@ async function generateReplyWithClaude(rawText: string) {
   return toClaudeText(payload);
 }
 
-export async function generateReplyText(rawText: string) {
+export async function generateReplyText(rawText: string, context?: ReplyContext) {
   const config = getConfig();
+  const grounding = await buildPumpXbtReply(rawText);
+  const prompt = buildReplyPrompt(rawText, grounding, context);
 
   try {
     if (config.llmProvider === "claude") {
-      return await generateReplyWithClaude(rawText);
+      return await generateReplyWithClaude(prompt);
     }
-  } catch (error) {
-    return fallbackReply(rawText, error);
-  }
 
-  return buildPumpXbtReply(rawText);
+    return await generateReplyWithOpenAI(prompt);
+  } catch (error) {
+    return fallbackReply(grounding, error);
+  }
 }

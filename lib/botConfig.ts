@@ -14,7 +14,7 @@ export type TransformationBotConfig = {
 
 export const botConfig: TransformationBotConfig = {
   botName: "PumpXBT",
-  defaultBotUsername: "PumpXBT",
+  defaultBotUsername: "PumpXBT_",
   transformationName: "market intelligence",
   promptVersion: "pumpxbt-market-agent-v1",
   imagePrompt: "Image transformation is disabled in PumpXBT agent mode.",

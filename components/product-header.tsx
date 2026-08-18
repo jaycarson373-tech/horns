@@ -8,11 +8,11 @@ import { useState } from "react";
 import { WalletButton } from "./wallet-button";
 
 const NAV = [
-  ["Terminal", "/terminal"],
-  ["Signals", "/signals"],
+  ["Agent", "/xbt"],
+  ["Calls", "/signals"],
   ["Callers", "/callers"],
-  ["Wallets", "/wallets"],
-  ["XBT", "/xbt"],
+  ["Terminal", "/#roadmap"],
+  ["Token", "/#token"],
   ["Treasury", "/treasury"]
 ] as const;
 

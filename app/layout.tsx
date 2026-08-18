@@ -11,8 +11,8 @@ const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   || (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
 const botHandle = process.env.NEXT_PUBLIC_BOT_HANDLE?.trim().replace(/^@+/, "");
-const title = "PumpXBT | The intelligence layer for Pump.fun";
-const description = "Track the best callers. Watch smart-money flow. Find what is moving before the timeline does.";
+const title = "PumpXBT | The intelligence agent for Pump.fun";
+const description = "XBT watches Pump.fun markets, tracks callers and onchain flow, and publishes high-quality calls.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

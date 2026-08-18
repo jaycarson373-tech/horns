@@ -1,8 +1,14 @@
 # PumpXBT
 
-PumpXBT is a read-only Pump token intelligence terminal plus an opt-in X mention agent. It ranks cached Solana Pump markets, records public wallet-cluster movement, exposes manually reviewed signals, verifies a 500,000-token premium gate, and shows only verifiable treasury receipts.
+PumpXBT is a Pump.fun signal terminal plus an opt-in X mention agent. It ranks verified on-chain opportunities, tracks public wallet movement, and publishes auditable treasury records.
 
-It does not hold wallets, sign transactions, execute trades, or invent market calls. A qualifying model result becomes a private `signal_candidates` row. It reaches the public site or X only after an operator explicitly publishes a `pump_signals` row.
+When `AUTO_TRADE_ENABLED=true`, the worker can execute callout-triggered SOL buys for qualifying mentions:
+
+- fixed-size trade input (`AUTO_TRADE_SOL_AMOUNT`, default 0.1 SOL)
+- follower gate (`AUTO_TRADE_FOLLOWER_THRESHOLD`, default 50)
+- per-project dedupe on mention id
+- per-caller cooldown via `AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER` (`0` means unlimited)
+- persisted execution records in `pump_trades` for terminal PnL tracking.
 
 ## Architecture
 
@@ -10,8 +16,7 @@ It does not hold wallets, sign transactions, execute trades, or invent market ca
 - Railway worker polls direct X mentions every 60 seconds.
 - Supabase stores terminal snapshots, signal workflow, wallet events, access challenges, treasury receipts, and processed mention IDs.
 - DexScreener supplies public market pairs and metrics.
-- Helius supplies public transaction parsing and token-balance checks.
-- The wallet gate signs a plain message. It never creates a transaction or requests token approval.
+- Helius supplies public transaction parsing.
 
 ## Database
 
@@ -43,7 +48,21 @@ Run one safe mention poll:
 npm run poll:once
 ```
 
-Keep `DRY_RUN=true` until the reply text and fetched mention IDs are correct.
+Keep `DRY_RUN=true` until the mention parsing, reply copy, and auto-trade thresholds are correct.
+
+## Auto Trade Variables
+
+```env
+AUTO_TRADE_ENABLED=false
+AUTO_TRADE_SOL_AMOUNT=0.1
+AUTO_TRADE_FOLLOWER_THRESHOLD=50
+AUTO_TRADE_SOL_MINT=So11111111111111111111111111111111111111112
+AUTO_TRADE_SLIPPAGE_BPS=80
+AUTO_TRADE_RPC_URL=https://mainnet.helius-rpc.com/?api-key=...
+AUTO_TRADE_QUOTE_API_URL=https://quote-api.jup.ag/v6
+AUTO_TRADE_PRIVATE_KEY=... # or TRADER_SECRET_KEY
+    AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER=0
+```
 
 ## X Agent
 
@@ -56,7 +75,7 @@ Users should mention the bot with one Solana mint or one unambiguous cashtag:
 @PumpXBT $TOKEN
 ```
 
-If the token is unknown, the worker queues the mint for ingestion and explicitly makes no call. A normal snapshot includes only cached liquidity, volume, flow, momentum, score, and whether a reviewed high-conviction signal is active.
+If the token is unknown, the worker queues the mint for ingestion and still executes auto-trade when enabled and the caller meets follower rules. A normal snapshot includes only cached liquidity, volume, flow, momentum, score, and whether a reviewed high-conviction signal is active.
 
 X app permissions must be **Read and write**. Generate OAuth 1.0a Access Token and Secret after setting those permissions. The app API key/secret and account access token/secret are different values.
 
@@ -77,7 +96,7 @@ Tracked addresses are operator-curated rows in `tracked_wallets`. Their activity
 
 Treasury claims are separate from policy. Insert a `treasury_events` row only after its signature, event type, amount, and block time are independently verifiable. Without a row, the site displays no receipt or performance number.
 
-## Token Gate
+## Token Visibility
 
 Set the same mint in both variables:
 
@@ -86,7 +105,7 @@ PUMPXBT_TOKEN_MINT=REAL_MINT
 NEXT_PUBLIC_PUMPXBT_TOKEN_MINT=REAL_MINT
 ```
 
-`PUMPXBT_TOKEN_MINT` is authoritative server-side. The public copy is display-only. The server verifies the signed challenge with the wallet's Ed25519 public key, checks SPL token accounts through Helius, then issues a short-lived HttpOnly cookie.
+`PUMPXBT_TOKEN_MINT` is authoritative server-side. The public copy is display-only.
 
 ## Deployment
 
@@ -98,12 +117,22 @@ Import the repository and set the site, Supabase, Helius, mint, session, and cro
 
 Create a separate service from the same repository. [`railway.json`](./railway.json) runs `npm run poll`. Add Supabase, bot identity, rate-limit, and X variables. Start with `DRY_RUN=true`, inspect one newly created mention, then deliberately switch it to `false` and redeploy.
 
-Do not put a Solana private key, seed phrase, trading key, or treasury signing key in either deployment. PumpXBT is read-only.
+Do not put this key outside Railway and never commit it:
+
+- `AUTO_TRADE_PRIVATE_KEY` (or `TRADER_SECRET_KEY`)
 
 ## Required Variables
 
 Site/API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HELIUS_API_KEY`, `PUMPXBT_TOKEN_MINT`, `NEXT_PUBLIC_PUMPXBT_TOKEN_MINT`, `SESSION_SECRET`, `CRON_SECRET`.
 
 Worker: site Supabase variables plus `BOT_MODE`, `BOT_USERNAME`, `BOT_USER_ID`, `BOT_PROJECT_KEY`, `DRY_RUN`, `X_BEARER_TOKEN`, `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`.
+Set one text reply provider:
+- `LLM_PROVIDER=openai` (default)
+- `LLM_PROVIDER=claude` with `ANTHROPIC_API_KEY` (and optional model/version overrides)
+Optional Claude tuning:
+- `LLM_TEMPERATURE` (default `0.1`)
+- `LLM_MAX_TOKENS` (default `240`)
+
+To execute trades, also set `AUTO_TRADE_ENABLED=true`, `AUTO_TRADE_PRIVATE_KEY` (or `TRADER_SECRET_KEY`), and `AUTO_TRADE_RPC_URL`.
 
 Optional: `NEXT_PUBLIC_BOT_HANDLE`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_BUY_URL`, `X_OAUTH2_USER_TOKEN`, and all threshold/rate-limit tuning variables shown in `.env.example`.

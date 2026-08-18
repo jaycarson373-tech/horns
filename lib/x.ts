@@ -13,6 +13,9 @@ export type XAuthor = {
   profile_image_url?: string;
   protected?: boolean;
   username?: string;
+  public_metrics?: {
+    followers_count?: number;
+  };
 };
 
 export type XMention = {
@@ -244,7 +247,7 @@ export async function fetchRecentMentions(limit?: number): Promise<XMention[]> {
       max_results: maxResults,
       expansions: "author_id",
       "tweet.fields": "author_id,created_at",
-      "user.fields": "id,name,username,profile_image_url,protected"
+      "user.fields": "id,name,username,profile_image_url,protected,public_metrics"
     });
     mentions = tweetsToMentions(response);
   } catch (error) {
@@ -281,8 +284,8 @@ async function fetchRecentDirectMentionSearch(limit?: number): Promise<XMention[
       query,
       max_results: searchMaxResults,
       expansions: "author_id",
-      "tweet.fields": "author_id,created_at",
-      "user.fields": "id,name,username,profile_image_url,protected"
+    "tweet.fields": "author_id,created_at",
+      "user.fields": "id,name,username,profile_image_url,protected,public_metrics"
     });
 
     const mentions = tweetsToMentions(response).filter((mention) => isDirectMention(mention.text, config.botUsername));
@@ -300,7 +303,7 @@ async function fetchRecentDirectMentionSearch(limit?: number): Promise<XMention[
 
 export async function fetchUserById(userId: string) {
   const response = await xApiGet<XUserResponse>(`/users/${userId}`, {
-    "user.fields": "id,name,username,profile_image_url,protected"
+    "user.fields": "id,name,username,profile_image_url,protected,public_metrics"
   });
 
   return response.data;

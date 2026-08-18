@@ -97,6 +97,32 @@ create unique index if not exists wallet_events_event_key_idx
 create index if not exists wallet_events_time_idx on public.wallet_events (block_time desc);
 create index if not exists wallet_events_token_idx on public.wallet_events (token_mint, block_time desc);
 
+create table if not exists public.pump_trades (
+  id uuid primary key default gen_random_uuid(),
+  bot_project text not null,
+  mention_id text not null,
+  author_id text not null,
+  author_username text,
+  author_followers integer,
+  token_mint text not null references public.pump_tokens(mint) on delete cascade,
+  token_symbol text,
+  token_decimals integer check (token_decimals is null or token_decimals between 0 and 18),
+  token_amount numeric check (token_amount is null or token_amount >= 0),
+  sol_amount numeric not null check (sol_amount >= 0),
+  quote_amount_lamports text,
+  status text not null default 'queued' check (status in ('queued', 'submitted', 'executed', 'failed', 'skipped')),
+  reason text,
+  tx_signature text unique,
+  executed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists pump_trades_mention_idx on public.pump_trades (bot_project, mention_id);
+create index if not exists pump_trades_status_idx on public.pump_trades (status, created_at desc);
+create index if not exists pump_trades_bot_project_idx on public.pump_trades (bot_project, created_at desc);
+create index if not exists pump_trades_author_idx on public.pump_trades (author_id, created_at desc);
+
 create table if not exists public.pump_signals (
   id uuid primary key default gen_random_uuid(),
   token_mint text not null references public.pump_tokens(mint) on delete cascade,
@@ -184,6 +210,10 @@ drop trigger if exists pump_signals_set_updated_at on public.pump_signals;
 create trigger pump_signals_set_updated_at before update on public.pump_signals
 for each row execute function public.set_updated_at();
 
+drop trigger if exists pump_trades_set_updated_at on public.pump_trades;
+create trigger pump_trades_set_updated_at before update on public.pump_trades
+for each row execute function public.set_updated_at();
+
 alter table public.pump_tokens enable row level security;
 alter table public.signal_candidates enable row level security;
 alter table public.tracked_wallets enable row level security;
@@ -192,6 +222,7 @@ alter table public.pump_signals enable row level security;
 alter table public.signal_updates enable row level security;
 alter table public.treasury_events enable row level security;
 alter table public.access_challenges enable row level security;
+alter table public.pump_trades enable row level security;
 
 -- Intentionally no public policies. Only server-side service-role clients may read or write.
 -- Wallet labels must describe verifiable public-chain observations, never non-public access.

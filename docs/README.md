@@ -1,7 +1,7 @@
 # PumpXBT Documentation
 
 ## What this repo does
-- Next.js public site with terminal analytics and receipts panel.
+- Next.js public site with terminal analytics, signal board, and receipts panel.
 - Read-only Supabase-backed ingestion and wallet/signal state.
 - Railway worker for the X mention agent (`poll-mentions.ts`) with dry-run mode.
 
@@ -50,9 +50,9 @@
 ## Bot flow
 1. Worker fetches direct mentions/replies for `@BOT_USERNAME`.
 2. Dedupes by `BOT_PROJECT_KEY` + `mention_id`.
-3. Reads author profile image and fetches the highest quality version.
-4. Edits/replaces content per current bot rules.
-5. Uploads image to X media endpoint and posts reply.
+3. Parses valid callout format and checks mention gates.
+4. Ranks the callout with live signal criteria and caller context.
+5. Posts a text reply with execution guidance and optional trade status.
 6. Records status and metadata in `processed_mentions`.
 
 ## Deployment

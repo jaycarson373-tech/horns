@@ -1,6 +1,7 @@
 import { botConfig } from "./botConfig";
 
 export type ImageProvider = "auto" | "openai" | "replicate" | "sharp";
+export type LlmProvider = "openai" | "claude";
 export type BotMode = "agent" | "image";
 
 export type AppConfig = {
@@ -8,6 +9,13 @@ export type AppConfig = {
   botUsername: string;
   botUserId: string;
   botProjectKey: string;
+  llmProvider: LlmProvider;
+  anthropicApiKey?: string;
+  anthropicApiBaseUrl: string;
+  anthropicModel: string;
+  anthropicApiVersion: string;
+  llmTemperature: number;
+  llmMaxTokens: number;
   cronSecret?: string;
   dryRun: boolean;
   dryRunGenerateImage: boolean;
@@ -42,6 +50,15 @@ export type AppConfig = {
   xApiSecret?: string;
   xBearerToken: string;
   xOAuth2UserToken?: string;
+  autoTradeEnabled: boolean;
+  autoTradeSolAmount: number;
+  autoTradeFollowerThreshold: number;
+  autoTradeSolMint: string;
+  autoTradeSlippageBps: number;
+  autoTradeRpcUrl: string;
+  autoTradeQuoteApiUrl: string;
+  autoTradePrivateKey?: string;
+  autoTradeMaxConsecutivePerCaller: number;
 };
 
 function env(name: string) {
@@ -97,6 +114,28 @@ function readInteger(name: string, fallback: number, options?: { min?: number; m
   return value;
 }
 
+function readNumber(name: string, fallback: number, options?: { min?: number; max?: number }) {
+  const rawValue = env(name);
+  if (rawValue === undefined) {
+    return fallback;
+  }
+
+  const value = Number.parseFloat(rawValue);
+  if (!Number.isFinite(value)) {
+    throw new Error(`${name} must be a number`);
+  }
+
+  if (options?.min !== undefined && value < options.min) {
+    throw new Error(`${name} must be >= ${options.min}`);
+  }
+
+  if (options?.max !== undefined && value > options.max) {
+    throw new Error(`${name} must be <= ${options.max}`);
+  }
+
+  return value;
+}
+
 function readImageProvider(): ImageProvider {
   const provider = env("IMAGE_PROVIDER") ?? "auto";
   if (provider === "auto" || provider === "openai" || provider === "replicate" || provider === "sharp") {
@@ -115,6 +154,15 @@ function readBotMode(): BotMode {
   throw new Error("BOT_MODE must be one of: agent, image");
 }
 
+function readLlmProvider() {
+  const provider = env("LLM_PROVIDER") ?? "openai";
+  if (provider === "openai" || provider === "claude") {
+    return provider;
+  }
+
+  throw new Error("LLM_PROVIDER must be one of: openai, claude");
+}
+
 function stripLeadingAt(username: string) {
   return username.replace(/^@+/, "").toLowerCase();
 }
@@ -127,8 +175,13 @@ export function getConfig(): AppConfig {
   const dryRun = readBoolean("DRY_RUN", true);
   const dryRunGenerateImage = readBoolean("DRY_RUN_GENERATE_IMAGE", false);
   const botMode = readBotMode();
+  const llmProvider = readLlmProvider();
   const imageProvider = readImageProvider();
   const openaiApiKey = env("OPENAI_API_KEY");
+  const anthropicApiKey = env("ANTHROPIC_API_KEY");
+  const anthropicApiBaseUrl = env("ANTHROPIC_API_BASE_URL") ?? "https://api.anthropic.com/v1";
+  const anthropicModel = env("ANTHROPIC_MODEL") ?? "claude-3-5-sonnet-20241022";
+  const anthropicApiVersion = env("ANTHROPIC_VERSION") ?? "2023-06-01";
   const replicateApiToken = env("REPLICATE_API_TOKEN");
   const replicateModel = env("REPLICATE_MODEL");
   const sharpFallbackEnabled = readBoolean("SHARP_FALLBACK_ENABLED", false);
@@ -155,8 +208,25 @@ export function getConfig(): AppConfig {
     required("X_ACCESS_TOKEN_SECRET");
   }
 
+  if (llmProvider === "claude" && !dryRun && !anthropicApiKey) {
+    throw new Error("ANTHROPIC_API_KEY is required when LLM_PROVIDER=claude");
+  }
+
+  const autoTradeEnabled = readBoolean("AUTO_TRADE_ENABLED", false);
+  const autoTradePrivateKey = env("AUTO_TRADE_PRIVATE_KEY") || env("TRADER_SECRET_KEY");
+  if (autoTradeEnabled && !dryRun && !autoTradePrivateKey) {
+    throw new Error("AUTO_TRADE_PRIVATE_KEY (or TRADER_SECRET_KEY) is required when AUTO_TRADE_ENABLED=true and DRY_RUN=false");
+  }
+
   return {
     botMode,
+    llmProvider,
+    anthropicApiKey,
+    anthropicApiBaseUrl,
+    anthropicModel,
+    anthropicApiVersion,
+    llmTemperature: readNumber("LLM_TEMPERATURE", 0.1, { min: 0, max: 2 }),
+    llmMaxTokens: readInteger("LLM_MAX_TOKENS", 240, { min: 64, max: 500 }),
     botUsername: stripLeadingAt(env("BOT_USERNAME") ?? botConfig.defaultBotUsername),
     botUserId: required("BOT_USER_ID"),
     botProjectKey: env("BOT_PROJECT_KEY") ?? defaultBotProjectKey(),
@@ -193,6 +263,15 @@ export function getConfig(): AppConfig {
     xApiKey: env("X_API_KEY"),
     xApiSecret: env("X_API_SECRET"),
     xBearerToken: required("X_BEARER_TOKEN"),
-    xOAuth2UserToken: env("X_OAUTH2_USER_TOKEN")
+    xOAuth2UserToken: env("X_OAUTH2_USER_TOKEN"),
+    autoTradeEnabled,
+    autoTradeSolAmount: readNumber("AUTO_TRADE_SOL_AMOUNT", 0.1, { min: 0 }),
+    autoTradeFollowerThreshold: readInteger("AUTO_TRADE_FOLLOWER_THRESHOLD", 50, { min: 0 }),
+    autoTradeSolMint: env("AUTO_TRADE_SOL_MINT") ?? "So11111111111111111111111111111111111111112",
+    autoTradeSlippageBps: readInteger("AUTO_TRADE_SLIPPAGE_BPS", 80, { min: 1, max: 1000 }),
+    autoTradeRpcUrl: env("AUTO_TRADE_RPC_URL") ?? `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(required("HELIUS_API_KEY"))}`,
+    autoTradeQuoteApiUrl: env("AUTO_TRADE_QUOTE_API_URL") ?? "https://quote-api.jup.ag/v6",
+    autoTradePrivateKey,
+    autoTradeMaxConsecutivePerCaller: readInteger("AUTO_TRADE_MAX_CONSECUTIVE_PER_CALLER", 8, { min: 0 })
   };
 }

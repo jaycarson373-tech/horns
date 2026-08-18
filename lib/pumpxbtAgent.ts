@@ -28,6 +28,13 @@ function tokenLabel(token: PumpToken) {
   return token.symbol ? `$${token.symbol.toUpperCase()}` : `${token.mint.slice(0, 4)}...${token.mint.slice(-4)}`;
 }
 
+export type CalloutResolution = {
+  token: PumpToken | null;
+  queuedMint: string | null;
+  ambiguous: boolean;
+  unsupportedMint: boolean;
+};
+
 function fitReply(lines: string[]) {
   const disclaimer = "Public data only. Not financial advice.";
   while ([...lines, disclaimer].join("\n").length > 280 && lines.length > 2) {
@@ -37,7 +44,7 @@ function fitReply(lines: string[]) {
   return reply.length <= 280 ? reply : `${reply.slice(0, 276)}...`;
 }
 
-async function resolveToken(text: string) {
+export async function resolveCalloutToken(text: string): Promise<CalloutResolution> {
   const mint = text.match(SOLANA_MINT)?.[0];
   if (mint) {
     if (!mint.toLowerCase().endsWith(pumpConfig.tokenSuffix)) {
@@ -60,28 +67,29 @@ async function resolveToken(text: string) {
 }
 
 export async function buildPumpXbtReply(text: string) {
-  const { token, queuedMint, ambiguous, unsupportedMint } = await resolveToken(text);
+  const { token, queuedMint, ambiguous, unsupportedMint } = await resolveCalloutToken(text);
   if (unsupportedMint) {
-    return `PumpXBT covers Pump tokens only. Send a Solana Pump mint ending in ${pumpConfig.tokenSuffix}, or one indexed $TICKER.`;
+    return `PumpXBT is a Pump.fun callout engine, not a general finance bot. Send a mint ending in ${pumpConfig.tokenSuffix}, or indexed $TICKER.`;
   }
   if (ambiguous) {
-    return "PumpXBT found multiple markets for that ticker. Reply with the Solana mint so I do not analyze the wrong token.";
+    return "Multiple matches found for that ticker. Hit me with the exact Solana mint so I route the right callout immediately.";
   }
   if (queuedMint) {
-    return `PumpXBT queued ${queuedMint.slice(0, 4)}...${queuedMint.slice(-4)} for verification. No market call until liquidity and flow data clear.`;
+    return `Mint ${queuedMint.slice(0, 4)}...${queuedMint.slice(-4)} queued. Running Pump.fun index check before I publish a signal.`;
   }
   if (!token) {
-    return "Tag me with one pump token mint or one $TICKER. I reply with verified market structure and only surface manually approved high-conviction calls.";
+    return "Tag me with one Pump.fun mint or one $TICKER. I track verified callers, rank conviction, and auto-report active setups.";
   }
 
   const signal = await findActiveSignal(token.mint);
   const buys = token.buys_1h == null ? "--" : String(token.buys_1h);
   const sells = token.sells_1h == null ? "--" : String(token.sells_1h);
-  const setup = signal ? `HC CALL ACTIVE · ${signal.confidence}/100` : "NO HIGH-CONVICTION CALL";
+  const setup = signal ? `AI CALL ACTIVE · ${signal.confidence}/100` : "NO HIGH-CONVICTION CALL";
+  const source = signal ? "verified caller set" : "awaiting validated signal";
   return fitReply([
-    `${tokenLabel(token)} · PUMPXBT`,
+    `${tokenLabel(token)} · PumpXBT`,
     `MC ${money(token.market_cap_usd)} · LIQ ${money(token.liquidity_usd)} · V1H ${money(token.volume_1h_usd)}`,
-    `1H ${percent(token.price_change_1h)} · B/S ${buys}/${sells} · SCORE ${token.score ?? "--"}`,
-    setup
+    `${source} · 1H ${percent(token.price_change_1h)} · B/S ${buys}/${sells} · SCORE ${token.score ?? "--"}`,
+    `${setup} · BUYBACK + BURN LOOP`
   ]);
 }

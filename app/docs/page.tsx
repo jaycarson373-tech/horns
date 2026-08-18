@@ -1,64 +1,73 @@
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+import { pumpConfig } from "@/lib/pumpConfig";
+
+export const metadata = {
+  title: "PumpXBT Docs | Callout intelligence for Pump.fun"
+};
 
 export default function DocsPage() {
+  const botHandle = pumpConfig.botHandle;
+
   return (
     <main className="docs-shell docs-page">
       <section className="docs-hero">
         <p className="docs-breadcrumb">PUMPXBT / DOCUMENTATION</p>
-        <h1>TRADING INTELLIGENCE THAT TRADING BOTS CAN TRUST.</h1>
+        <h1>High-frequency callout terminal for Pump.fun markets.</h1>
         <p>
-          PumpXBT is an open, source-backed intelligence terminal for Pump tokens. It ranks verified on-chain activity,
-          surfaces manually published signals, and keeps treasury claims transparent on-chain.
+          PumpXBT is a public, read-only analytics terminal with an automated callout intelligence layer.
+          It ranks verified callers, surfaces top-scored tokens, and publishes execution outcomes for transparent strategy analysis.
         </p>
       </section>
 
       <section className="docs-grid">
         <article className="docs-panel">
-          <h2>01 / CALLOUT PROTOCOL</h2>
+          <h2>01 / SIGNAL INGESTION</h2>
           <p>
-            Signal candidates must originate from Pump.fun callouts. Public signals move through three gates before a call is
-            published:
+            The terminal only reacts to direct mentions/replies to the configured bot handle. There are no
+            keyword-based triggers. Signals are mapped by mint or token symbol, normalized by Pump.fun liquidity and velocity,
+            then tagged by conviction and token-level risk flags.
           </p>
-          <ol>
-            <li>Caller must be verified.</li>
-            <li>Caller needs a demonstrated high win-rate on recent play history.</li>
-            <li>AI ranker checks consistency, freshness, thesis quality, and risk behavior.</li>
-          </ol>
+          <p>
+            The Callout Engine page is the memory layer: it keeps per-token and per-caller performance so strategy drift is visible at a glance.
+          </p>
         </article>
 
         <article className="docs-panel">
-          <h2>02 / PROFIT MANDATE</h2>
+          <h2>02 / EXECUTION TRAILS</h2>
           <p>
-            100% of realized callout profits are routed to <strong>buybacks</strong> and then to <strong>burns</strong>. No hidden
-            splits.
+            Every action is logged: created, queued, submitted, executed, failed, or skipped. Current value and PNL
+            are derived from public pricing and surfaced alongside each execution row.
           </p>
-          <p>Public burn/buyback evidence is anchored to on-chain Solscan proof rows.</p>
+          <p>
+            There is no wallet write from the frontend. All chain interaction remains in bot-run jobs and is intentionally constrained by configured execution limits.
+          </p>
         </article>
 
         <article className="docs-panel">
-          <h2>03 / ACCESS MODEL</h2>
+          <h2>03 / BUYBACK + BURN POLICY</h2>
           <p>
-            The public section is open. Premium sections require a minimum token holding gate and are
-            cryptographically verified per-session.
+            100% of realized callout profits and validated caller rewards are routed toward buyback and burn.
+            No off-ledger accounting is performed; records are only inserted after on-chain signatures are confirmed.
+          </p>
+          <p>
+            Treasury records are queryable in the main terminal under Treasury and remain independent from caller ranking so there is no hidden balancing.
+          </p>
+          <Link href="#">See treasury proof rows in terminal</Link>
+        </article>
+
+        <article className="docs-panel">
+          <h2>04 / ACCESS + SAFETY</h2>
+          <p>
+            Free users receive terminal visibility for markets, signals, calls, callers and wallet flow.
+            Higher-leverage modules can be layered as paid features without changing the same read-only proof feed.
           </p>
           <ul>
-            <li>Premium unlock is non-custodial.</li>
-            <li>Holdings are validated via chain state, not wallet permissions.</li>
-            <li>All checks are read-only and logged by server state.</li>
+            <li>Direct mentions only.</li>
+            <li>Rate-limit safe execution and idempotent mention handling.</li>
+            <li>All core data is auditable by design.</li>
           </ul>
-        </article>
-
-        <article className="docs-panel">
-          <h2>04 / API SAFETY</h2>
-          <p>
-            Supabase, Helius, and Solscan are used for read-only verification and ranking support. Data is
-            cached server-side and exposed on demand.
-          </p>
-          <p>
-            X replies are opt-in and triggered only by direct mentions or replies to @{process.env.NEXT_PUBLIC_BOT_HANDLE || "bot"}.
-          </p>
+          <p>Bot handle: <strong>@{botHandle || "not set"}</strong></p>
           <Link href="/">← Back to terminal</Link>
         </article>
       </section>

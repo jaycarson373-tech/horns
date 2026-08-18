@@ -28,7 +28,7 @@ export function SignalBoard({ signals, limit }: { signals: PumpSignal[]; limit?:
             </article>
           );
         })}
-        {visible.length === 0 ? <div className="product-empty">No verified signals in this filter.</div> : null}
+        {visible.length === 0 ? <div className="product-empty">NO HIGH-CONVICTION CALLS — XBT is still scanning.</div> : null}
       </div>
     </div>
   );

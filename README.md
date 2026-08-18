@@ -94,8 +94,8 @@ The worker reads the bot account's mentions timeline and recent direct-mention s
 Users should mention the bot with one Solana mint or one unambiguous cashtag:
 
 ```text
-@PumpXBT 9abc...pump
-@PumpXBT $TOKEN
+@PumpXBT_ 9abc...pump
+@PumpXBT_ $TOKEN
 ```
 
 If the token is unknown, the worker queues the mint for ingestion and still executes auto-trade when enabled and the caller meets follower rules. A normal snapshot includes only cached liquidity, volume, flow, momentum, score, and whether a reviewed high-conviction signal is active.
@@ -103,6 +103,8 @@ If the token is unknown, the worker queues the mint for ingestion and still exec
 Direct-mint callouts are the deterministic path. Cashtags are accepted only when the symbol resolves to one unambiguous indexed token. The worker deduplicates mention IDs, records every execution attempt, and refuses unsupported or ambiguous tokens. Caller rewards are not distributed by the current code; only caller performance and reputation are tracked today.
 
 Tagged replies are supported. When a mention is a reply, the worker loads the parent tweet and passes both messages to the configured text model so PumpXBT can answer the actual question in context. Set `OPENAI_API_KEY` plus `OPENAI_TEXT_MODEL` (default `gpt-5.4-nano`), or use the Claude variables. `MAX_USER_REPLIES_PER_HOUR` defaults to `10` to support short conversations while retaining spam protection.
+
+At startup, the worker verifies that `BOT_USERNAME`, `BOT_USER_ID`, the bearer-token lookup, and the authenticated write account all resolve to the same X identity. Mentions recorded during dry run are retried once `DRY_RUN=false`; completed replies remain idempotent.
 
 X app permissions must be **Read and write**. Generate OAuth 1.0a Access Token and Secret after setting those permissions. The app API key/secret and account access token/secret are different values.
 

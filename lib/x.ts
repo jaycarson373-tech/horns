@@ -325,6 +325,52 @@ export async function fetchUserById(userId: string) {
   return response.data;
 }
 
+export async function verifyXCredentials(options?: { verifyWrite?: boolean }) {
+  const config = getConfig();
+  const readIdentity = await xApiGet<XUserResponse>(`/users/by/username/${encodeURIComponent(config.botUsername)}`, {
+    "user.fields": "id,username"
+  });
+
+  if (!readIdentity.data) {
+    throw new Error(`X could not resolve @${config.botUsername} with X_BEARER_TOKEN`);
+  }
+  if (readIdentity.data.id !== config.botUserId) {
+    throw new Error(
+      `BOT_USER_ID mismatch: @${config.botUsername} resolves to ${readIdentity.data.id}, not ${config.botUserId}`
+    );
+  }
+
+  let writeIdentity: XAuthor | undefined;
+  let writeAuth = "not_checked";
+  if (options?.verifyWrite) {
+    if (config.xOAuth2UserToken) {
+      writeIdentity = (await xOAuth2Get<XUserResponse>("/users/me", {
+        "user.fields": "id,username"
+      })).data;
+      writeAuth = "oauth2_user_context";
+    } else {
+      writeIdentity = (await getWriteClient().currentUserV2(true)).data;
+      writeAuth = "oauth1_user_context";
+    }
+
+    if (!writeIdentity) {
+      throw new Error("X write credentials could not resolve their authenticated user");
+    }
+    if (writeIdentity.id !== config.botUserId) {
+      throw new Error(
+        `X write credential mismatch: authenticated @${writeIdentity.username ?? "unknown"} (${writeIdentity.id}), expected @${config.botUsername} (${config.botUserId})`
+      );
+    }
+  }
+
+  console.info("x.auth.verified", {
+    botUsername: config.botUsername,
+    botUserId: config.botUserId,
+    writeAuth,
+    writeUsername: writeIdentity?.username
+  });
+}
+
 export async function fetchTweetTextById(tweetId: string) {
   const response = await xApiGet<XTweetLookupResponse>(`/tweets/${tweetId}`, {
     "tweet.fields": "text"

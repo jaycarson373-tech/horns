@@ -61,8 +61,10 @@ function isOlderThanLimit(createdAt: string | undefined, maxAgeMinutes: number) 
   return Number.isFinite(created) && Date.now() - created > maxAgeMinutes * 60_000;
 }
 
-function isRetryableExistingRecord(status: string, error?: string | null) {
-  return status === "failed" || (status === "skipped" && error?.endsWith("_rate_limited"));
+export function isRetryableProcessedMention(status: string, error: string | null | undefined, dryRun: boolean) {
+  return status === "failed"
+    || (!dryRun && status === "dry_run")
+    || (status === "skipped" && error?.endsWith("_rate_limited"));
 }
 
 async function markSkipped(
@@ -92,7 +94,11 @@ async function processMention(mention: XMention): Promise<MentionProcessOutcome>
     status: "queued"
   });
 
-  if (!created.created && !isRetryableExistingRecord(created.record?.status ?? "", created.record?.error)) {
+  if (!created.created && !isRetryableProcessedMention(
+    created.record?.status ?? "",
+    created.record?.error,
+    config.dryRun
+  )) {
     return { mentionId: mention.id, status: "duplicate", reason: "already_processed" };
   }
 

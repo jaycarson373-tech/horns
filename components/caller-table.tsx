@@ -15,7 +15,7 @@ export function CallerTable({ callers, compact = false }: { callers: CallerPerfo
             const rank = caller.winRate == null ? "UNRANKED" : caller.winRate >= 65 ? "A" : caller.winRate >= 50 ? "B" : "C";
             return <tr key={caller.author_id}><td><strong>#{index + 1}</strong></td><td><Link className="caller-cell" href={`/callers/${encodeURIComponent(caller.author_id)}`}><i>{name.replace("@", "").slice(0, 2).toUpperCase()}</i><span><strong>{name}</strong><small>Active {relativeTime(caller.lastCallAt)} ago</small></span></Link></td><td>{caller.calls}</td><td>{formatPercent(caller.winRate)}</td><td className={(caller.avgPnlPercent ?? 0) >= 0 ? "positive" : "negative"}>{formatPercent(caller.avgPnlPercent)}</td><td>{formatPercent(caller.bestPnlPercent)}</td><td><span className={`rank rank-${rank.toLowerCase()}`}>{rank}</span><small>{formatSol(caller.totalSolAllocated)} tracked</small></td></tr>;
           })}
-          {visible.length === 0 ? <tr><td colSpan={7} className="table-empty">Caller performance appears after tracked callouts resolve.</td></tr> : null}
+          {visible.length === 0 ? <tr><td colSpan={7} className="table-empty">CALLER INDEX IS WATCHING — Rankings publish after tracked calls resolve.</td></tr> : null}
         </tbody>
       </table>
     </div>

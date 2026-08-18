@@ -5,7 +5,7 @@ import {
   queuePumpToken,
   type PumpToken
 } from "./pumpData";
-import { pumpConfig } from "./pumpConfig";
+import { isVerifiedPumpMint } from "./pumpMint";
 
 const SOLANA_MINT = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/;
 const CASHTAG = /\$([A-Za-z][A-Za-z0-9]{1,9})\b/;
@@ -47,7 +47,7 @@ function fitReply(lines: string[]) {
 export async function resolveCalloutToken(text: string): Promise<CalloutResolution> {
   const mint = text.match(SOLANA_MINT)?.[0];
   if (mint) {
-    if (!mint.toLowerCase().endsWith(pumpConfig.tokenSuffix)) {
+    if (!await isVerifiedPumpMint(mint)) {
       return { token: null, queuedMint: null, ambiguous: false, unsupportedMint: true };
     }
     const token = await findPumpTokenByMint(mint);
@@ -69,7 +69,7 @@ export async function resolveCalloutToken(text: string): Promise<CalloutResoluti
 export async function buildPumpXbtReply(text: string) {
   const { token, queuedMint, ambiguous, unsupportedMint } = await resolveCalloutToken(text);
   if (unsupportedMint) {
-    return `PumpXBT is a Pump.fun callout engine, not a general finance bot. Send a mint ending in ${pumpConfig.tokenSuffix}, or indexed $TICKER.`;
+    return "PumpXBT only handles verified Pump.fun markets. Send a Pump.fun mint or an indexed $TICKER.";
   }
   if (ambiguous) {
     return "Multiple matches found for that ticker. Hit me with the exact Solana mint so I route the right callout immediately.";

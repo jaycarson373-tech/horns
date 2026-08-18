@@ -1,5 +1,6 @@
 import { getSupabase, type PumpTrade } from "./supabase";
 import { pumpConfig } from "./pumpConfig";
+import { isVerifiedPumpMint } from "./pumpMint";
 
 export type PumpToken = {
   mint: string;
@@ -387,8 +388,8 @@ function emptyTerminal(error?: string): TerminalData {
 }
 
 export async function queuePumpToken(mint: string) {
-  if (!mint.toLowerCase().endsWith(pumpConfig.tokenSuffix)) {
-    throw new Error(`Only Solana mints ending in ${pumpConfig.tokenSuffix} can be queued.`);
+  if (!await isVerifiedPumpMint(mint)) {
+    throw new Error("Only mints with a verified Pump.fun market can be queued.");
   }
   const { error } = await getSupabase().from("pump_tokens").upsert({
     mint,

@@ -130,7 +130,7 @@ async function discoverMints() {
   }
   for (const row of existing.data ?? []) {
     const mint = String(row.mint);
-    if (mint.toLowerCase().endsWith(pumpConfig.tokenSuffix)) mints.add(mint);
+    mints.add(mint);
   }
   return [...mints].slice(0, 150);
 }

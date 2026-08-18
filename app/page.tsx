@@ -69,6 +69,7 @@ export default async function HomePage() {
   const boughtBack = tokenMint ? sumVerifiedTokenEvents(data.treasuryEvents, "buyback", tokenMint) : null;
   const burned = tokenMint ? sumVerifiedTokenEvents(data.treasuryEvents, "burn", tokenMint) : null;
   const hasVerifiedFlywheelData = realizedProfitUsd != null || boughtBack != null || burned != null;
+  const scannerTokens = data.tokens.slice(0, 4);
 
   return (
     <main className="home-page">
@@ -83,6 +84,35 @@ export default async function HomePage() {
             <Link className="secondary-button" href="/signals">VIEW LIVE CALLS</Link>
           </div>
         </div>
+        <aside className="home-scanner" aria-label="Live PumpXBT scanner">
+          <header>
+            <div><i className={data.connected ? "live" : ""} /><span>PUMP.FUN SCANNER</span></div>
+            <strong>{data.connected ? "XBT LIVE" : "SYNCING"}</strong>
+          </header>
+          <div className="scanner-metrics">
+            <article><span>MARKETS INDEXED</span><strong>{data.stats.trackedMarkets ?? "--"}</strong></article>
+            <article><span>ACTIVE CALLS</span><strong>{data.stats.activeSignals ?? "--"}</strong></article>
+            <article><span>VERIFIED TRADES</span><strong>{executedTrades.length}</strong></article>
+            <article><span>REALIZED PROFIT</span><strong>{formatUsd(realizedProfitUsd)}</strong></article>
+          </div>
+          <div className="scanner-tape">
+            <div className="scanner-tape-head"><span>TOP SCANS</span><span>MC</span><span>1H VOL</span><span>XBT</span></div>
+            {scannerTokens.map((token) => (
+              <Link href={`/terminal?q=${encodeURIComponent(token.symbol || token.mint)}`} key={token.mint}>
+                <span><i />{token.symbol ? `$${token.symbol.toUpperCase()}` : shortAddress(token.mint)}</span>
+                <span>{formatUsd(token.market_cap_usd)}</span>
+                <span>{formatUsd(token.volume_1h_usd)}</span>
+                <strong>{token.score ?? "--"}</strong>
+              </Link>
+            ))}
+            {scannerTokens.length === 0 ? <div className="scanner-empty"><strong>PUMPXBT IS WATCHING</strong><span>Waiting for the next verified market snapshot.</span></div> : null}
+          </div>
+          <footer>
+            <div><span>BUYBACKS</span><strong>{boughtBack == null ? "--" : formatTokenAmount(boughtBack)}</strong></div>
+            <div><span>BURNED</span><strong>{burned == null ? "--" : formatTokenAmount(burned)}</strong></div>
+            <Link href="/terminal">OPEN FULL TERMINAL →</Link>
+          </footer>
+        </aside>
       </section>
 
       {tokenMint ? <section className="home-contract-strip" aria-label="PumpXBT contract address"><div className="page-width"><ContractAddress mint={tokenMint} pumpFunUrl={pumpConfig.pumpFunTokenUrl} /></div></section> : null}

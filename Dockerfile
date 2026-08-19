@@ -7,15 +7,16 @@ RUN npm ci
 
 COPY . .
 RUN npm run typecheck
+RUN npm prune --omit=dev && npm cache clean --force
 
 FROM node:20-bookworm-slim AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/package-lock.json ./package-lock.json
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/app ./app
 COPY --from=build /app/assets ./assets
 COPY --from=build /app/lib ./lib

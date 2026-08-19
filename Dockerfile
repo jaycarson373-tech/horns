@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY . .
 RUN npm run typecheck
 RUN npm prune --omit=dev && npm cache clean --force
 
-FROM node:20-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production

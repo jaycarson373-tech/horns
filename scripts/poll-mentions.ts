@@ -34,6 +34,8 @@ async function main() {
     autoTradeEnabled: config.autoTradeEnabled,
     autoTradeReady: config.autoTradeEnabled && !config.autoTradeUnavailableReason,
     autoTradeUnavailableReason: config.autoTradeUnavailableReason,
+    tradeWalletSyncEnabled: config.tradeWalletSyncEnabled,
+    xAutoPostEnabled: config.xAutoPostEnabled,
     writeAuth: config.xOAuth2UserToken ? "oauth2_user_context" : "oauth1_user_context"
   });
   if (config.autoTradeUnavailableReason) {

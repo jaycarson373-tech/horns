@@ -1,0 +1,13 @@
+.git
+.github
+.next
+node_modules
+coverage
+dist
+site
+tests
+.env
+.env.*
+*.log
+*.tsbuildinfo
+.DS_Store
